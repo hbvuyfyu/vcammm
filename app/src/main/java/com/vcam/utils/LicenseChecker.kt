@@ -9,7 +9,13 @@ import java.net.URL
 
 object LicenseChecker {
 
-    private const val CODES_URL = "https://raw.githubusercontent.com/hbvuyfyu/vcammm/main/allcod"
+    // Multiple mirrors — if GitHub raw is blocked, jsDelivr CDN usually works
+    private val CODES_URLS = listOf(
+        "https://cdn.jsdelivr.net/gh/hbvuyfyu/vcammm@main/allcod",
+        "https://raw.githubusercontent.com/hbvuyfyu/vcammm/main/allcod",
+        "https://ghproxy.com/https://raw.githubusercontent.com/hbvuyfyu/vcammm/main/allcod"
+    )
+
     private const val PREFS_NAME = "vcam_license"
     private const val KEY_CODE = "activated_code"
 
@@ -26,32 +32,40 @@ object LicenseChecker {
     }
 
     suspend fun verifyCode(code: String): VerifyResult = withContext(Dispatchers.IO) {
-        try {
-            val url = URL(CODES_URL)
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 8000
-            conn.readTimeout = 8000
-            conn.requestMethod = "GET"
-            conn.setRequestProperty("Cache-Control", "no-cache, no-store")
+        for (urlStr in CODES_URLS) {
+            try {
+                val content = fetchUrl(urlStr) ?: continue
 
-            val responseCode = conn.responseCode
-            if (responseCode != 200) return@withContext VerifyResult.NETWORK_ERROR
+                val codes = content.lines()
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() && !it.startsWith("#") }
 
-            val content = conn.inputStream.bufferedReader(Charsets.UTF_8).readText()
-            conn.disconnect()
-
-            // Ignore blank lines and comment lines (starting with #)
-            val codes = content.lines()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("#") }
-
-            when {
-                codes.isEmpty() -> VerifyResult.SERVER_EMPTY
-                codes.contains(code.trim()) -> VerifyResult.VALID
-                else -> VerifyResult.INVALID
+                return@withContext when {
+                    codes.isEmpty() -> VerifyResult.SERVER_EMPTY
+                    codes.contains(code.trim()) -> VerifyResult.VALID
+                    else -> VerifyResult.INVALID
+                }
+            } catch (_: Exception) {
+                // Try next mirror
             }
-        } catch (e: Exception) {
-            VerifyResult.NETWORK_ERROR
+        }
+        // All mirrors failed
+        VerifyResult.NETWORK_ERROR
+    }
+
+    private fun fetchUrl(urlStr: String): String? {
+        val conn = URL(urlStr).openConnection() as HttpURLConnection
+        conn.connectTimeout = 8000
+        conn.readTimeout = 8000
+        conn.requestMethod = "GET"
+        conn.setRequestProperty("Cache-Control", "no-cache, no-store")
+        conn.setRequestProperty("User-Agent", "VirtualCam/1.0")
+        return if (conn.responseCode == 200) {
+            conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                .also { conn.disconnect() }
+        } else {
+            conn.disconnect()
+            null
         }
     }
 
