@@ -1,4 +1,4 @@
-name: Build VCam APK
+name: Build Virtual Cam APK
 
 on:
   push:
@@ -67,14 +67,14 @@ jobs:
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: VCam-Debug-APK
+          name: VirtualCam-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: VCam-Release-APK
+          name: VirtualCam-Release-APK
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 30
 
@@ -83,17 +83,17 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
-          name: VCam v${{ github.run_number }}
+          name: Virtual Cam v${{ github.run_number }}
           body: |
-            ## VCam Build ${{ github.run_number }}
-            Rooted Android emulator virtual camera injection app.
+            ## Virtual Cam Build ${{ github.run_number }}
+            System-wide virtual camera injection for rooted Android devices.
             ### Download
             - **Debug APK**: app-debug.apk
             - **Release APK** (unsigned): app-release-unsigned.apk
             ### Requirements
             - Android 8.0+ (API 26+)
-            - Rooted emulator (Genymotion, LDPlayer, MuMu)
-            - Magisk root manager
+            - Rooted Android (Magisk recommended)
+            - Valid access code required on first launch
           files: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release-unsigned.apk

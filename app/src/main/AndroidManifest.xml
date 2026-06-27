@@ -9,22 +9,24 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
-    <!-- Camera (needed for listing apps that use camera) -->
+    <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Overlay window (floating window) -->
+    <!-- Overlay window -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Services & notifications -->
+    <!-- Services and notifications -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Network — required for license verification -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Query installed apps -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
-    <!-- Network (optional: RTMP stream future support) -->
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -38,17 +40,26 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VCam"
         android:requestLegacyExternalStorage="true"
-        android:extractNativeLibs="true">
+        android:extractNativeLibs="true"
+        android:usesCleartextTraffic="true">
 
+        <!-- Code/license gate — this is the LAUNCHER activity -->
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.CodeActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize">
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Main app screen — only reachable after code verification -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"/>
 
         <!-- Main injection service -->
         <service
@@ -56,7 +67,7 @@
             android:exported="false"
             android:foregroundServiceType="camera" />
 
-        <!-- Floating overlay window service — no foregroundServiceType needed on < API 34 -->
+        <!-- Floating overlay window service -->
         <service
             android:name=".service.FloatWindowService"
             android:exported="false" />
