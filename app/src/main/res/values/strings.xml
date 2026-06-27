@@ -24,4 +24,7 @@
     <string name="overlay_permission_msg">Virtual Cam needs overlay permission for the floating control window. Grant it?</string>
     <string name="grant">Grant</string>
     <string name="skip">Skip</string>
+    <!-- Required by item_app.xml (kept for layout compatibility) -->
+    <string name="app_icon">App icon</string>
+    <string name="camera_badge">CAM</string>
 </resources>
