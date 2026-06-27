@@ -17,7 +17,7 @@ plugins {
           testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
           
           ndk {
-              abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+              abiFilters += listOf("armeabi-v7a", "arm64-v8a")
           }
 
           externalNativeBuild {
@@ -60,6 +60,19 @@ plugins {
               version = "3.22.1"
           }
       }
+
+      packaging {
+          // Preserve the prebuilt injection binaries exactly as-is.
+          // vcplax.so is a PIE executable (not a shared lib); must not be stripped.
+          // libvc.so and libshadowhook.so use symbol-name hooks that must be intact.
+          jniLibs {
+              keepDebugSymbols += setOf(
+                  "**/vcplax.so",
+                  "**/libvc.so",
+                  "**/libshadowhook.so"
+              )
+          }
+      }
   }
 
   dependencies {
@@ -75,4 +88,3 @@ plugins {
       implementation(libs.glide)
       implementation(libs.kotlinx.coroutines.android)
   }
-  
