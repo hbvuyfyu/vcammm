@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#CC1A1A2E"
+    android:padding="8dp"
+    android:elevation="16dp">
+
+    <!-- Header row: status + target -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="6dp">
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/bg_status_dot"
+            android:layout_marginEnd="6dp"/>
+
+        <TextView
+            android:id="@+id/tv_float_target"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:text="VCam Active"/>
+
+    </LinearLayout>
+
+    <!-- Media type label -->
+    <TextView
+        android:id="@+id/tv_float_type"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#B0C4DE"
+        android:textSize="10sp"
+        android:paddingBottom="8dp"
+        android:text="🖼 Image"/>
+
+    <!-- Control buttons row -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Rotate -->
+        <ImageButton
+            android:id="@+id/btn_float_rotate"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_refresh"
+            android:background="@android:color/transparent"
+            android:tint="#4F8EF7"
+            android:contentDescription="Rotate 90°"
+            android:padding="8dp"/>
+
+        <!-- Mirror -->
+        <ImageButton
+            android:id="@+id/btn_float_mirror"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_target"
+            android:background="@android:color/transparent"
+            android:tint="#4F8EF7"
+            android:alpha="0.5"
+            android:contentDescription="Mirror"
+            android:padding="8dp"/>
+
+        <!-- Stop -->
+        <ImageButton
+            android:id="@+id/btn_float_stop"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_stop"
+            android:background="@android:color/transparent"
+            android:tint="#EF4444"
+            android:contentDescription="Stop VCam"
+            android:padding="8dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>
