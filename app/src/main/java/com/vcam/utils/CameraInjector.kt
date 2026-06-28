@@ -11,7 +11,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -110,7 +109,7 @@ class CameraInjector(
                     if (mirror)        VcplaxEngine.setMirror(true)
 
                     // Stay alive and propagate rotation/mirror changes
-                    while (running && isActive) {
+                    while (running) {
                         delay(500)
                         // Check if vcplax is still running
                         if (!VcplaxEngine.isRunning) {
@@ -234,7 +233,7 @@ class CameraInjector(
         val yuyv = bitmapToYUYV(bitmap, TARGET_W, TARGET_H)
         bitmap.recycle()
         nativeUpdateYUYVFrame(yuyv, TARGET_W, TARGET_H)
-        while (running && isActive) delay(500)
+        while (running) delay(500)
     }
 
     private suspend fun streamVideo(pushToV4L2: Boolean) = withContext(Dispatchers.IO) {
@@ -248,7 +247,7 @@ class CameraInjector(
             var posMs = 0L
             val frameIntervalMs = 33L
 
-            while (running && isActive) {
+            while (running) {
                 val frameBitmap = retriever.getFrameAtTime(
                     posMs * 1000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC
                 )
