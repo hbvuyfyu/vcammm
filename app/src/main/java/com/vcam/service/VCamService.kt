@@ -149,7 +149,7 @@ class VCamService : Service() {
         serviceScope.launch {
             try {
                 // Try vcplax hot-swap first (no interruption)
-                val proxy = VcplaxEngine.proxy
+                val proxy = VcplaxEngine.getProxy()
                 if (proxy != null && VcplaxEngine.isRunning) {
                     proxy.switchSource(path, if (isVideo) 2 else 1)
                 } else {
