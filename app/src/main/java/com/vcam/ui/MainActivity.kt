@@ -1,11 +1,14 @@
 package com.vcam.ui
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -17,16 +20,32 @@ import com.vcam.R
 import com.vcam.databinding.ActivityMainBinding
 import com.vcam.service.VCamService
 import com.vcam.utils.LicenseChecker
+import com.vcam.utils.MediaSlotManager
 import com.vcam.viewmodel.MainViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
 
+    // Track which slot is being picked
+    private var pendingSlot = 1
+
     private val pickMedia = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.setMediaUri(it, this) }
+        uri ?: return@registerForActivityResult
+        val slot    = pendingSlot
+        val isVideo = slot == 5
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                MediaSlotManager.setSlot(this@MainActivity, slot, uri, isVideo)
+            }
+            refreshSlotUI(slot)
+            // Enable Start if slot 1 is set
+            binding.btnStartStop.isEnabled = MediaSlotManager.isSlotSet(this@MainActivity, 1)
+        }
     }
 
     private val permissionLauncher = registerForActivityResult(
@@ -48,17 +67,18 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupObservers()
-        setupClickListeners()
+        setupSlotPickers()
+        setupStartStop()
         requestPermissions()
+        // Refresh all slot UIs on create
+        (1..5).forEach { refreshSlotUI(it) }
+        binding.btnStartStop.isEnabled = MediaSlotManager.isSlotSet(this, 1)
     }
 
     override fun onResume() {
         super.onResume()
         val savedCode = LicenseChecker.getSavedCode(this)
-        if (savedCode == null) {
-            logoutToCodeScreen()
-            return
-        }
+        if (savedCode == null) { logoutToCodeScreen(); return }
         lifecycleScope.launch {
             val result = LicenseChecker.verifyCode(savedCode)
             if (result == LicenseChecker.VerifyResult.INVALID ||
@@ -76,19 +96,9 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun setupObservers() {
-        viewModel.mediaUri.observe(this) { uri ->
-            if (uri != null) {
-                binding.tvMediaSelected.text = getString(R.string.media_selected)
-                binding.ivMediaPreview.setImageURI(uri)
-                binding.cardMedia.visibility = View.VISIBLE
-                binding.btnStartStop.isEnabled = true
-            } else {
-                binding.cardMedia.visibility = View.GONE
-                binding.btnStartStop.isEnabled = false
-            }
-        }
+    // ── Observers ─────────────────────────────────────────────────────────
 
+    private fun setupObservers() {
         viewModel.isServiceRunning.observe(this) { running ->
             binding.btnStartStop.text = if (running) getString(R.string.stop_vcam)
                                          else getString(R.string.start_vcam)
@@ -111,11 +121,63 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupClickListeners() {
-        binding.btnPickImage?.setOnClickListener { pickMedia.launch("image/*") }
-        binding.btnPickVideo?.setOnClickListener { pickMedia.launch("video/*") }
-        binding.btnClearMedia?.setOnClickListener { viewModel.clearMedia() }
+    // ── Slot pickers ──────────────────────────────────────────────────────
 
+    private fun setupSlotPickers() {
+        // Image slots 1-4
+        listOf(
+            R.id.btn_pick_slot_1 to 1,
+            R.id.btn_pick_slot_2 to 2,
+            R.id.btn_pick_slot_3 to 3,
+            R.id.btn_pick_slot_4 to 4,
+        ).forEach { (btnId, slot) ->
+            binding.root.findViewById<View>(btnId)?.setOnClickListener {
+                pendingSlot = slot
+                pickMedia.launch("image/*")
+            }
+        }
+
+        // Video slot 5
+        binding.root.findViewById<View>(R.id.btn_pick_slot_5)?.setOnClickListener {
+            pendingSlot = 5
+            pickMedia.launch("video/*")
+        }
+    }
+
+    // ── Refresh slot thumbnail + status label ─────────────────────────────
+
+    private fun refreshSlotUI(slot: Int) {
+        val ivId = when (slot) {
+            1 -> R.id.iv_slot_1; 2 -> R.id.iv_slot_2; 3 -> R.id.iv_slot_3
+            4 -> R.id.iv_slot_4; else -> R.id.iv_slot_5
+        }
+        val tvId = when (slot) {
+            1 -> R.id.tv_slot_1_status; 2 -> R.id.tv_slot_2_status; 3 -> R.id.tv_slot_3_status
+            4 -> R.id.tv_slot_4_status; else -> R.id.tv_slot_5_status
+        }
+        val iv = binding.root.findViewById<ImageView>(ivId) ?: return
+        val tv = binding.root.findViewById<TextView>(tvId) ?: return
+
+        if (MediaSlotManager.isSlotSet(this, slot)) {
+            tv.text    = getString(R.string.slot_ready)
+            tv.setTextColor(0xFF22C55E.toInt())
+            iv.visibility = View.VISIBLE
+            lifecycleScope.launch {
+                val bmp: Bitmap? = withContext(Dispatchers.IO) {
+                    MediaSlotManager.getThumbnail(this@MainActivity, slot)
+                }
+                if (bmp != null) iv.setImageBitmap(bmp)
+            }
+        } else {
+            tv.text = getString(R.string.slot_empty)
+            tv.setTextColor(0xFF555555.toInt())
+            iv.visibility = View.GONE
+        }
+    }
+
+    // ── Start / Stop ──────────────────────────────────────────────────────
+
+    private fun setupStartStop() {
         binding.btnStartStop.setOnClickListener {
             if (viewModel.isServiceRunning.value == true) stopVCamService()
             else handleStart()
@@ -123,13 +185,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleStart() {
-        val mediaUri = viewModel.mediaUri.value ?: run {
+        if (!MediaSlotManager.isSlotSet(this, 1)) {
             showSnack(getString(R.string.select_media_first)); return
         }
-        checkOverlayThenStart(mediaUri)
+        checkOverlayThenStart()
     }
 
-    private fun checkOverlayThenStart(mediaUri: Uri) {
+    private fun checkOverlayThenStart() {
         if (!Settings.canDrawOverlays(this)) {
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.overlay_permission_title)
@@ -139,21 +201,21 @@ class MainActivity : AppCompatActivity() {
                         Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                             Uri.parse("package:$packageName"))
                     )
-                    doStartService(mediaUri)
+                    doStartService()
                 }
-                .setNegativeButton(R.string.skip) { _, _ -> doStartService(mediaUri) }
+                .setNegativeButton(R.string.skip) { _, _ -> doStartService() }
                 .show()
         } else {
-            doStartService(mediaUri)
+            doStartService()
         }
     }
 
-    private fun doStartService(mediaUri: Uri) {
+    private fun doStartService() {
+        val slot1Path = MediaSlotManager.getSlotPath(this, 1) ?: return
         val intent = Intent(this, VCamService::class.java).apply {
             action = VCamService.ACTION_START
-            putExtra(VCamService.EXTRA_MEDIA_URI, mediaUri.toString())
-            putExtra(VCamService.EXTRA_IS_VIDEO, viewModel.isVideo.value == true)
-            // No EXTRA_TARGET_PACKAGE — always system-wide global injection
+            putExtra(VCamService.EXTRA_MEDIA_PATH, slot1Path)
+            putExtra(VCamService.EXTRA_IS_VIDEO, false)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
         else startService(intent)
@@ -165,6 +227,8 @@ class MainActivity : AppCompatActivity() {
         startService(Intent(this, VCamService::class.java).apply { action = VCamService.ACTION_STOP })
         viewModel.setServiceRunning(false)
     }
+
+    // ── Permissions ───────────────────────────────────────────────────────
 
     private fun requestPermissions() {
         val permissions = buildList {

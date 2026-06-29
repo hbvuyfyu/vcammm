@@ -10,17 +10,16 @@ import android.widget.*
 import androidx.core.app.NotificationCompat
 import com.vcam.R
 import com.vcam.ui.MainActivity
+import com.vcam.ui.PreviewActivity
+import com.vcam.utils.MediaSlotManager
 
 /**
- * FloatWindowService — draggable floating overlay (like the analyzed app).
+ * FloatWindowService — draggable floating overlay.
  *
  * Shows:
- *   • Status icon (camera on/off)
- *   • Rotation button (0→90→180→270)
- *   • Mirror toggle
- *   • Stop button
- *
- * Communicate rotation/mirror changes back to VCamService via broadcasts.
+ *   • Slot switcher buttons [1][2][3][4][5]
+ *   • Preview button (👁) → opens PreviewActivity for current slot
+ *   • Rotation, Mirror, Stop buttons
  */
 class FloatWindowService : Service() {
 
@@ -32,10 +31,12 @@ class FloatWindowService : Service() {
         const val EXTRA_TARGET_NAME     = "float_target_name"
         const val EXTRA_IS_VIDEO        = "float_is_video"
 
-        /** Broadcast from float window to VCamService */
+        /** Broadcasts to VCamService */
         const val ACTION_ROTATE         = "com.vcam.float.ROTATE"
         const val ACTION_MIRROR         = "com.vcam.float.MIRROR"
         const val ACTION_STOP_VCAM      = "com.vcam.float.STOP_VCAM"
+        const val ACTION_SWITCH_SLOT    = "com.vcam.float.SWITCH_SLOT"
+        const val EXTRA_SLOT            = "slot_number"
 
         private const val CHANNEL_ID    = "vcam_float_channel"
         private const val NOTIF_ID      = 1002
@@ -46,6 +47,13 @@ class FloatWindowService : Service() {
     private var layoutParams: WindowManager.LayoutParams? = null
     private var currentRotation = 0
     private var isMirrored = false
+    private var activeSlot = 1
+
+    // Slot button views
+    private val slotBtnIds = listOf(
+        R.id.btn_slot_1, R.id.btn_slot_2, R.id.btn_slot_3,
+        R.id.btn_slot_4, R.id.btn_slot_5
+    )
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -71,89 +79,128 @@ class FloatWindowService : Service() {
         return START_NOT_STICKY
     }
 
-    override fun onDestroy() {
-        removeFloatWindow()
-        super.onDestroy()
-    }
+    override fun onDestroy() { removeFloatWindow(); super.onDestroy() }
 
     // ── Float window ──────────────────────────────────────────────────
 
     private fun showFloatWindow(targetName: String, isVideo: Boolean) {
         if (floatView != null) return
 
-        val inflater = LayoutInflater.from(this)
-        val view = inflater.inflate(R.layout.float_window, null)
+        val view = LayoutInflater.from(this).inflate(R.layout.float_window, null)
 
-        // Set target label
+        // Status labels
         view.findViewById<TextView>(R.id.tv_float_target)?.text =
-            if (targetName.length > 18) targetName.take(16) + "…" else targetName
-        view.findViewById<TextView>(R.id.tv_float_type)?.text =
-            if (isVideo) "🎬 Video" else "🖼 Image"
+            if (targetName.length > 16) targetName.take(14) + "…" else targetName
+        updateTypeLabel(view, activeSlot)
 
-        // Rotation button
-        val btnRotate = view.findViewById<ImageButton>(R.id.btn_float_rotate)
-        btnRotate?.setOnClickListener {
-            currentRotation = (currentRotation + 90) % 360
-            val btn = it as? ImageButton
-            btn?.contentDescription = "Rotate ${currentRotation}°"
-            sendBroadcast(Intent(ACTION_ROTATE).putExtra("rotation", currentRotation))
-            Toast.makeText(this, "Rotation: ${currentRotation}°", Toast.LENGTH_SHORT).show()
+        // ── Slot buttons ──
+        slotBtnIds.forEachIndexed { idx, btnId ->
+            val slot = idx + 1
+            view.findViewById<TextView>(btnId)?.setOnClickListener {
+                switchToSlot(view, slot)
+            }
+        }
+        // Mark slot 1 as active initially
+        updateSlotButtonVisuals(view, activeSlot)
+
+        // ── Preview button ──
+        view.findViewById<ImageButton>(R.id.btn_float_preview)?.setOnClickListener {
+            openPreview(activeSlot)
         }
 
-        // Mirror button
+        // ── Rotate ──
+        view.findViewById<ImageButton>(R.id.btn_float_rotate)?.setOnClickListener {
+            currentRotation = (currentRotation + 90) % 360
+            sendBroadcast(Intent(ACTION_ROTATE).putExtra("rotation", currentRotation))
+            Toast.makeText(this, "دوران: ${currentRotation}°", Toast.LENGTH_SHORT).show()
+        }
+
+        // ── Mirror ──
         val btnMirror = view.findViewById<ImageButton>(R.id.btn_float_mirror)
         btnMirror?.setOnClickListener {
             isMirrored = !isMirrored
             btnMirror.alpha = if (isMirrored) 1f else 0.5f
             sendBroadcast(Intent(ACTION_MIRROR).putExtra("mirror", isMirrored))
-            Toast.makeText(this, if (isMirrored) "Mirror: ON" else "Mirror: OFF", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, if (isMirrored) "عكس: ON" else "عكس: OFF", Toast.LENGTH_SHORT).show()
         }
 
-        // Stop button
+        // ── Stop ──
         view.findViewById<ImageButton>(R.id.btn_float_stop)?.setOnClickListener {
             sendBroadcast(Intent(ACTION_STOP_VCAM))
-            sendBroadcast(Intent(ACTION_STOP_FLOAT))
             removeFloatWindow()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
 
-        // Drag support
+        // Window params
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE,
+            else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 50
-            y = 200
-        }
+        ).apply { gravity = Gravity.TOP or Gravity.START; x = 50; y = 200 }
 
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        windowManager = wm
-        layoutParams  = lp
-        floatView     = view
+        windowManager = wm; layoutParams = lp; floatView = view
 
-        // Drag only on the header row, not on buttons
-        view.findViewById<View>(R.id.tv_float_target)?.setOnTouchListener(
-            DragTouchListener(view, wm, lp)
-        )
-        view.findViewById<View>(R.id.tv_float_type)?.setOnTouchListener(
-            DragTouchListener(view, wm, lp)
-        )
+        // Drag on header
+        val dragHandle = view.findViewById<View>(R.id.float_drag_handle)
+        dragHandle?.setOnTouchListener(DragTouchListener(view, wm, lp))
         wm.addView(view, lp)
     }
 
+    // ── Slot switching ────────────────────────────────────────────────
+
+    private fun switchToSlot(view: View, slot: Int) {
+        if (!MediaSlotManager.isSlotSet(this, slot)) {
+            Toast.makeText(this, getString(R.string.slot_not_set, slot), Toast.LENGTH_SHORT).show()
+            return
+        }
+        activeSlot = slot
+        updateSlotButtonVisuals(view, slot)
+        updateTypeLabel(view, slot)
+        sendBroadcast(Intent(ACTION_SWITCH_SLOT).putExtra(EXTRA_SLOT, slot))
+        Toast.makeText(this, getString(R.string.slot_switched, slot), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateSlotButtonVisuals(view: View, active: Int) {
+        slotBtnIds.forEachIndexed { idx, btnId ->
+            val slot = idx + 1
+            val tv = view.findViewById<TextView>(btnId) ?: return@forEachIndexed
+            val isActive = slot == active
+            tv.textColors?.let { }  // just trigger refresh
+            tv.setTextColor(if (isActive) 0xFFFFFFFF.toInt() else 0xFFAAAAAA.toInt())
+            tv.setBackgroundResource(
+                when {
+                    isActive && slot == 5 -> R.drawable.bg_slot_btn_video_active
+                    isActive              -> R.drawable.bg_slot_btn_active
+                    slot == 5            -> R.drawable.bg_slot_btn_video
+                    else                 -> R.drawable.bg_slot_btn_inactive
+                }
+            )
+        }
+    }
+
+    private fun updateTypeLabel(view: View, slot: Int) {
+        view.findViewById<TextView>(R.id.tv_float_type)?.text =
+            if (slot == 5) "🎬 فيديو" else "📷 صورة $slot"
+    }
+
+    // ── Preview ───────────────────────────────────────────────────────
+
+    private fun openPreview(slot: Int) {
+        val intent = Intent(this, PreviewActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra(PreviewActivity.EXTRA_SLOT, slot)
+        }
+        startActivity(intent)
+    }
+
     private fun removeFloatWindow() {
-        try {
-            floatView?.let { windowManager?.removeView(it) }
-        } catch (_: Exception) {}
+        try { floatView?.let { windowManager?.removeView(it) } } catch (_: Exception) {}
         floatView = null
     }
 
@@ -187,26 +234,19 @@ class FloatWindowService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID, "VCam Float Window",
-                NotificationManager.IMPORTANCE_MIN
-            )
-            getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+            NotificationChannel(CHANNEL_ID, "VCam Float Window", NotificationManager.IMPORTANCE_MIN).let {
+                getSystemService(NotificationManager::class.java)?.createNotificationChannel(it)
+            }
         }
     }
 
     private fun buildNotification(targetName: String, isVideo: Boolean): Notification {
-        val pi = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setContentTitle("VCam Float — Active")
             .setContentText("Injecting ${if (isVideo) "video" else "image"} → $targetName")
-            .setContentIntent(pi)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setOngoing(true)
-            .build()
+            .setContentIntent(pi).setPriority(NotificationCompat.PRIORITY_MIN).setOngoing(true).build()
     }
 }

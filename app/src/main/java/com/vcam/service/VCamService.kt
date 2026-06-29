@@ -10,8 +10,9 @@ import androidx.core.app.NotificationCompat
 import com.vcam.R
 import com.vcam.ui.MainActivity
 import com.vcam.utils.CameraInjector
-import com.vcam.utils.MediaUtils
+import com.vcam.utils.MediaSlotManager
 import com.vcam.utils.RootManager
+import com.vcam.utils.VcplaxEngine
 import kotlinx.coroutines.*
 
 class VCamService : Service() {
@@ -19,7 +20,8 @@ class VCamService : Service() {
     companion object {
         const val ACTION_START          = "com.vcam.ACTION_START"
         const val ACTION_STOP           = "com.vcam.ACTION_STOP"
-        const val EXTRA_MEDIA_URI       = "extra_media_uri"
+        const val EXTRA_MEDIA_URI       = "extra_media_uri"   // kept for compatibility
+        const val EXTRA_MEDIA_PATH      = "extra_media_path"  // preferred: absolute path
         const val EXTRA_TARGET_PACKAGE  = "extra_target_package"
         const val EXTRA_TARGET_NAME     = "extra_target_name"
         const val EXTRA_IS_VIDEO        = "extra_is_video"
@@ -31,17 +33,23 @@ class VCamService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
     private var injector: CameraInjector? = null
 
-    /** Receives rotation / mirror commands from FloatWindowService */
+    /** Receives rotation / mirror / slot-switch commands from FloatWindowService */
     private val controlReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 FloatWindowService.ACTION_ROTATE -> {
                     val r = intent.getIntExtra("rotation", 0)
                     injector?.rotation = r
+                    VcplaxEngine.setRotation(r)
                 }
                 FloatWindowService.ACTION_MIRROR -> {
                     val m = intent.getBooleanExtra("mirror", false)
                     injector?.mirror = m
+                    VcplaxEngine.setMirror(m)
+                }
+                FloatWindowService.ACTION_SWITCH_SLOT -> {
+                    val slot = intent.getIntExtra(FloatWindowService.EXTRA_SLOT, 1)
+                    switchToSlot(slot)
                 }
                 FloatWindowService.ACTION_STOP_VCAM -> {
                     stopInjection()
@@ -60,6 +68,7 @@ class VCamService : Service() {
         val filter = IntentFilter().apply {
             addAction(FloatWindowService.ACTION_ROTATE)
             addAction(FloatWindowService.ACTION_MIRROR)
+            addAction(FloatWindowService.ACTION_SWITCH_SLOT)
             addAction(FloatWindowService.ACTION_STOP_VCAM)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -78,19 +87,27 @@ class VCamService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
-                val mediaUriStr   = intent.getStringExtra(EXTRA_MEDIA_URI)    ?: return START_NOT_STICKY
-                val mediaUri      = Uri.parse(mediaUriStr)
+                // Accept either a raw path (preferred) or a URI (legacy)
+                val mediaPath: String? = intent.getStringExtra(EXTRA_MEDIA_PATH)
+                    ?: intent.getStringExtra(EXTRA_MEDIA_URI)?.let { uriStr ->
+                        try {
+                            val uri = Uri.parse(uriStr)
+                            val isVideo = intent.getBooleanExtra(EXTRA_IS_VIDEO, false)
+                            val tmp = copyUriToFile(uri, if (isVideo) "vcam_input.mp4" else "vcam_input.jpg")
+                            tmp?.absolutePath
+                        } catch (_: Exception) { null }
+                    }
+
+                if (mediaPath == null) return START_NOT_STICKY
+
                 val targetPackage = intent.getStringExtra(EXTRA_TARGET_PACKAGE)
-                val targetName    = intent.getStringExtra(EXTRA_TARGET_NAME)  ?: targetPackage ?: "All Apps"
+                val targetName    = intent.getStringExtra(EXTRA_TARGET_NAME) ?: "All Apps"
                 val isVideo       = intent.getBooleanExtra(EXTRA_IS_VIDEO, false)
 
                 startForeground(NOTIFICATION_ID, buildNotification(targetName, isVideo, "Setting up…"))
-                serviceScope.launch { startInjection(mediaUri, targetPackage, targetName, isVideo) }
+                serviceScope.launch { startInjection(mediaPath, targetPackage, targetName, isVideo) }
 
-                // Launch floating window if overlay permission granted
-                if (Settings.canDrawOverlays(this)) {
-                    startFloatWindow(targetName, isVideo)
-                }
+                if (Settings.canDrawOverlays(this)) startFloatWindow(targetName, isVideo)
             }
             ACTION_STOP -> {
                 stopInjection()
@@ -105,35 +122,50 @@ class VCamService : Service() {
     // ── Injection ─────────────────────────────────────────────────────
 
     private suspend fun startInjection(
-        mediaUri: Uri, targetPackage: String?,
+        mediaPath: String, targetPackage: String?,
         targetName: String, isVideo: Boolean
     ) {
         try {
-            val mediaFile = MediaUtils.copyUriToFile(
-                this, mediaUri,
-                if (isVideo) "vcam_input.mp4" else "vcam_input.jpg"
-            ) ?: run {
-                updateNotification("VCam Error", "Cannot copy media file")
-                return
-            }
-
             injector = CameraInjector(
-                context = this,
-                mediaPath = mediaFile.absolutePath,
-                isVideo = isVideo,
+                context       = this,
+                mediaPath     = mediaPath,
+                isVideo       = isVideo,
                 targetPackage = targetPackage
             )
             injector?.start()
-
             updateNotification(
                 "VCam Active ✓",
-                if (!targetPackage.isNullOrBlank())
-                    "Injecting into $targetName — open the app now"
-                else
-                    "System-wide injection active — open any camera app"
+                "System-wide injection active — open any camera app"
             )
         } catch (e: Exception) {
             updateNotification("VCam Error", e.message ?: "Unknown error")
+        }
+    }
+
+    /** Hot-swap to a different media slot while injection is running. */
+    private fun switchToSlot(slot: Int) {
+        val path    = MediaSlotManager.getSlotPath(this, slot) ?: return
+        val isVideo = MediaSlotManager.isSlotVideo(this, slot)
+        serviceScope.launch {
+            try {
+                // Try vcplax hot-swap first (no interruption)
+                val proxy = VcplaxEngine.proxy
+                if (proxy != null && VcplaxEngine.isRunning) {
+                    proxy.switchSource(path, if (isVideo) 2 else 1)
+                } else {
+                    // Restart injection with new media
+                    injector?.stop()
+                    injector = CameraInjector(
+                        context       = this@VCamService,
+                        mediaPath     = path,
+                        isVideo       = isVideo,
+                        targetPackage = null
+                    )
+                    injector?.start()
+                }
+                updateNotification("VCam — Slot $slot Active",
+                    if (isVideo) "🎬 فيديو" else "📷 صورة $slot")
+            } catch (_: Exception) {}
         }
     }
 
@@ -160,57 +192,46 @@ class VCamService : Service() {
         })
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────
+
+    private fun copyUriToFile(uri: Uri, name: String): java.io.File? {
+        return try {
+            val dest = java.io.File(filesDir, name)
+            contentResolver.openInputStream(uri)?.use { ins ->
+                java.io.FileOutputStream(dest).use { out -> ins.copyTo(out) }
+            }
+            dest
+        } catch (_: Exception) { null }
+    }
+
     // ── Notification ──────────────────────────────────────────────────
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID, "VCam Injection",
-                NotificationManager.IMPORTANCE_LOW
+                CHANNEL_ID, "VCam Injection", NotificationManager.IMPORTANCE_LOW
             ).apply { description = "VCam camera injection service" }
             getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
         }
     }
 
     private fun buildNotification(targetName: String, isVideo: Boolean, status: String): Notification {
-        val pi = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val stopPi = PendingIntent.getService(
-            this, 1,
+        val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val stopPi = PendingIntent.getService(this, 1,
             Intent(this, VCamService::class.java).apply { action = ACTION_STOP },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_vcam_notif)
             .setContentTitle("VCam — ${if (isVideo) "Video" else "Image"} → $targetName")
             .setContentText(status)
             .setContentIntent(pi)
             .addAction(android.R.drawable.ic_media_pause, "Stop VCam", stopPi)
-            .setOngoing(true)
-            .build()
+            .setOngoing(true).build()
     }
 
     private fun updateNotification(title: String, text: String) {
         val nm = getSystemService(NotificationManager::class.java) ?: return
-        val pi = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val stopPi = PendingIntent.getService(
-            this, 1,
-            Intent(this, VCamService::class.java).apply { action = ACTION_STOP },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val n = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_vcam_notif)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setContentIntent(pi)
-            .addAction(android.R.drawable.ic_media_pause, "Stop VCam", stopPi)
-            .setOngoing(true)
-            .build()
-        nm.notify(NOTIFICATION_ID, n)
+        nm.notify(NOTIFICATION_ID, buildNotification(title, false, text))
     }
 }

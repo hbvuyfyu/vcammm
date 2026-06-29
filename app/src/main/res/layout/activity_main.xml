@@ -34,7 +34,6 @@
             android:textSize="20sp"
             android:textStyle="bold"/>
 
-        <!-- Root status dot -->
         <TextView
             android:id="@+id/tv_root_status"
             android:layout_width="wrap_content"
@@ -49,13 +48,9 @@
             android:paddingBottom="4dp"/>
     </LinearLayout>
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#1A1A1A"/>
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A1A1A"/>
 
-    <!-- Main content -->
+    <!-- Main scrollable content -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -65,90 +60,217 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:padding="16dp">
 
-            <!-- Media preview card (hidden until media selected) -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_media"
+            <!-- Section title: Media Slots -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                android:visibility="gone"
-                app:cardCornerRadius="14dp"
+                android:text="@string/slots_title"
+                android:textColor="#888888"
+                android:textSize="11sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="10dp"/>
+
+            <!-- SLOT 1 - Image -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_slot_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="12dp"
                 app:cardBackgroundColor="#111111"
                 app:cardElevation="0dp">
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <ImageView
-                        android:id="@+id/iv_media_preview"
-                        android:layout_width="match_parent"
-                        android:layout_height="200dp"
-                        android:scaleType="centerCrop"
-                        android:contentDescription="@string/media_preview"/>
+                    android:layout_height="72dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="8dp">
+
+                    <!-- Slot number badge -->
+                    <TextView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:text="1"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:background="@drawable/bg_slot_badge"
+                        android:layout_marginEnd="12dp"/>
+
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="8dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
                         <TextView
-                            android:id="@+id/tv_media_selected"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:textColor="#888888"
-                            android:textSize="13sp"/>
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_clear_media"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/clear"
-                            android:textColor="#EF4444"
-                            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+                            android:text="@string/slot_image_1"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold"/>
+                        <TextView
+                            android:id="@+id/tv_slot_1_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/slot_empty"
+                            android:textColor="#555555"
+                            android:textSize="12sp"/>
                     </LinearLayout>
+
+                    <!-- Thumbnail -->
+                    <ImageView
+                        android:id="@+id/iv_slot_1"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:scaleType="centerCrop"
+                        android:background="#1E1E1E"
+                        android:visibility="gone"
+                        android:contentDescription="Slot 1 thumbnail"
+                        android:layout_marginEnd="8dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_pick_slot_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/pick"
+                        android:textSize="12sp"
+                        android:textColor="#4F8EF7"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        app:strokeColor="#4F8EF7"
+                        app:cornerRadius="8dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Pick Image button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_pick_image"
+            <!-- SLOT 2 - Image -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_slot_2"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="12dp"
-                android:text="@string/pick_image"
-                android:textSize="15sp"
-                android:textColor="#FFFFFF"
-                app:cornerRadius="12dp"
-                app:icon="@drawable/ic_image"
-                app:iconGravity="textStart"
-                app:iconSize="22dp"
-                app:iconTint="#FFFFFF"
-                android:backgroundTint="#1A1A1A"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp"/>
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#111111"
+                app:cardElevation="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="8dp">
+                    <TextView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:text="2"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:background="@drawable/bg_slot_badge"
+                        android:layout_marginEnd="12dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_image_2" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_slot_2_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_empty" android:textColor="#555555" android:textSize="12sp"/>
+                    </LinearLayout>
+                    <ImageView android:id="@+id/iv_slot_2" android:layout_width="52dp" android:layout_height="52dp" android:scaleType="centerCrop" android:background="#1E1E1E" android:visibility="gone" android:contentDescription="Slot 2" android:layout_marginEnd="8dp"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_pick_slot_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pick" android:textSize="12sp" android:textColor="#4F8EF7" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:strokeColor="#4F8EF7" app:cornerRadius="8dp" android:paddingStart="12dp" android:paddingEnd="12dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-            <!-- Pick Video button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_pick_video"
+            <!-- SLOT 3 - Image -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_slot_3"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="28dp"
-                android:text="@string/pick_video"
-                android:textSize="15sp"
-                android:textColor="#FFFFFF"
-                app:cornerRadius="12dp"
-                app:icon="@drawable/ic_video"
-                app:iconGravity="textStart"
-                app:iconSize="22dp"
-                app:iconTint="#FFFFFF"
-                android:backgroundTint="#1A1A1A"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp"/>
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#111111"
+                app:cardElevation="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="8dp">
+                    <TextView android:layout_width="32dp" android:layout_height="32dp" android:text="3" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold" android:gravity="center" android:background="@drawable/bg_slot_badge" android:layout_marginEnd="12dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_image_3" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_slot_3_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_empty" android:textColor="#555555" android:textSize="12sp"/>
+                    </LinearLayout>
+                    <ImageView android:id="@+id/iv_slot_3" android:layout_width="52dp" android:layout_height="52dp" android:scaleType="centerCrop" android:background="#1E1E1E" android:visibility="gone" android:contentDescription="Slot 3" android:layout_marginEnd="8dp"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_pick_slot_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pick" android:textSize="12sp" android:textColor="#4F8EF7" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:strokeColor="#4F8EF7" app:cornerRadius="8dp" android:paddingStart="12dp" android:paddingEnd="12dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- SLOT 4 - Image -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_slot_4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#111111"
+                app:cardElevation="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="8dp">
+                    <TextView android:layout_width="32dp" android:layout_height="32dp" android:text="4" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold" android:gravity="center" android:background="@drawable/bg_slot_badge" android:layout_marginEnd="12dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_image_4" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_slot_4_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_empty" android:textColor="#555555" android:textSize="12sp"/>
+                    </LinearLayout>
+                    <ImageView android:id="@+id/iv_slot_4" android:layout_width="52dp" android:layout_height="52dp" android:scaleType="centerCrop" android:background="#1E1E1E" android:visibility="gone" android:contentDescription="Slot 4" android:layout_marginEnd="8dp"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_pick_slot_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pick" android:textSize="12sp" android:textColor="#4F8EF7" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:strokeColor="#4F8EF7" app:cornerRadius="8dp" android:paddingStart="12dp" android:paddingEnd="12dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- SLOT 5 - Video -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_slot_5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#111111"
+                app:cardElevation="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="8dp">
+                    <TextView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:text="5"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:backgroundTint="#7C3AED"
+                        android:background="@drawable/bg_slot_badge"
+                        android:layout_marginEnd="12dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_video_5" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_slot_5_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/slot_empty" android:textColor="#555555" android:textSize="12sp"/>
+                    </LinearLayout>
+                    <ImageView android:id="@+id/iv_slot_5" android:layout_width="52dp" android:layout_height="52dp" android:scaleType="centerCrop" android:background="#1E1E1E" android:visibility="gone" android:contentDescription="Slot 5" android:layout_marginEnd="8dp"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_pick_slot_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pick" android:textSize="12sp" android:textColor="#A78BFA" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:strokeColor="#A78BFA" app:cornerRadius="8dp" android:paddingStart="12dp" android:paddingEnd="12dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
             <!-- Start / Stop button -->
             <com.google.android.material.button.MaterialButton
@@ -167,14 +289,12 @@
                 app:iconTint="#FFFFFF"
                 android:backgroundTint="@color/color_start"/>
 
-            <!-- Hint text -->
             <TextView
-                android:id="@+id/tv_hint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Select an image or video, then tap Start.\nVirtual Cam will inject it into all camera apps on your device."
-                android:textColor="#555555"
+                android:layout_marginTop="14dp"
+                android:text="@string/start_hint"
+                android:textColor="#444444"
                 android:textSize="12sp"
                 android:gravity="center"
                 android:lineSpacingExtra="3dp"/>
@@ -182,7 +302,14 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Hidden placeholder views that the layout binding expects but are now optional -->
+    <!-- Hidden legacy views kept for binding compatibility -->
     <View android:id="@+id/layout_media_type" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <ImageView android:id="@+id/iv_media_preview" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <androidx.cardview.widget.CardView android:id="@+id/card_media" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" app:cardBackgroundColor="#000000">
+        <TextView android:id="@+id/tv_media_selected" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_clear_media" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:visibility="gone" style="@style/Widget.MaterialComponents.Button.TextButton"/>
+    </androidx.cardview.widget.CardView>
+    <com.google.android.material.button.MaterialButton android:id="@+id/btn_pick_image" android:layout_width="0dp" android:layout_height="0dp" android:text="" android:visibility="gone" app:cornerRadius="0dp"/>
+    <com.google.android.material.button.MaterialButton android:id="@+id/btn_pick_video" android:layout_width="0dp" android:layout_height="0dp" android:text="" android:visibility="gone" app:cornerRadius="0dp"/>
 
 </LinearLayout>

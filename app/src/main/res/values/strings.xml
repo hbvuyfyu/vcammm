@@ -8,14 +8,15 @@
     <string name="select_media">Select Media</string>
     <string name="pick_image">Pick Image</string>
     <string name="pick_video">Pick Video</string>
+    <string name="pick">اختر</string>
     <string name="media_selected">Media loaded</string>
     <string name="media_preview">Media preview</string>
     <string name="clear">Remove</string>
     <string name="start_vcam">Start</string>
     <string name="stop_vcam">Stop</string>
     <string name="permissions_required">Permissions required to continue</string>
-    <string name="select_media_first">Please select an image or video first</string>
-    <string name="injection_active">Virtual Cam Active — Open any camera app</string>
+    <string name="select_media_first">الرجاء رفع صورة في الحقل 1 أولاً</string>
+    <string name="injection_active">Virtual Cam Active — افتح أي تطبيق كاميرا</string>
     <string name="enter_code_hint">Please enter your access code</string>
     <string name="code_invalid">Invalid code. Please try again.</string>
     <string name="code_revoked">Your access has been revoked.</string>
@@ -24,6 +25,18 @@
     <string name="overlay_permission_msg">Virtual Cam needs overlay permission for the floating control window. Grant it?</string>
     <string name="grant">Grant</string>
     <string name="skip">Skip</string>
+    <!-- Slot strings -->
+    <string name="slots_title">حقول الوسائط</string>
+    <string name="slot_image_1">📷 صورة 1 (تبدأ تلقائياً)</string>
+    <string name="slot_image_2">📷 صورة 2</string>
+    <string name="slot_image_3">📷 صورة 3</string>
+    <string name="slot_image_4">📷 صورة 4</string>
+    <string name="slot_video_5">🎬 فيديو (الحقل 5)</string>
+    <string name="slot_empty">فارغ — اضغط لاختيار ملف</string>
+    <string name="slot_ready">جاهز ✓</string>
+    <string name="slot_switched">تم التبديل إلى الحقل %d</string>
+    <string name="slot_not_set">الحقل %d فارغ — ارفع ملفاً أولاً</string>
+    <string name="start_hint">ارفع ملفات في الحقول، ثم اضغط Start.\nتحكم سريع بالأزرار 1–5 في النافذة العائمة.</string>
     <!-- Required by item_app.xml (kept for layout compatibility) -->
     <string name="app_icon">App icon</string>
     <string name="camera_badge">CAM</string>

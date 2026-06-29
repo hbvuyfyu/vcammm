@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Zoomable image -->
+    <ImageView
+        android:id="@+id/iv_preview_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="matrix"
+        android:contentDescription="Preview"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Top bar -->
+    <LinearLayout
+        android:id="@+id/preview_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:background="#AA000000"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tv_preview_slot_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="معاينة"/>
+
+        <TextView
+            android:id="@+id/tv_preview_zoom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#AAAAAA"
+            android:textSize="13sp"
+            android:layout_marginEnd="12dp"
+            android:text="100%"/>
+
+        <ImageButton
+            android:id="@+id/btn_preview_close"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:background="@android:color/transparent"
+            android:tint="#FFFFFF"
+            android:contentDescription="Close"/>
+    </LinearLayout>
+
+    <!-- Bottom zoom controls -->
+    <LinearLayout
+        android:id="@+id/preview_bottom_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="#AA000000"
+        android:padding="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="24dp">
+
+        <Button
+            android:id="@+id/btn_preview_zoom_out"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:text="−"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#33FFFFFF"
+            style="@style/Widget.MaterialComponents.Button"/>
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"/>
+
+        <Button
+            android:id="@+id/btn_preview_zoom_in"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:text="+"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#33FFFFFF"
+            style="@style/Widget.MaterialComponents.Button"/>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
