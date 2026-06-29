@@ -179,6 +179,8 @@ object VcplaxEngine {
 
     val isRunning: Boolean get() = proxy?.isRunning == true
 
+    fun getProxy(): VcamBinderProxy? = proxy
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private fun getOrCreateServiceName(context: Context): String {
