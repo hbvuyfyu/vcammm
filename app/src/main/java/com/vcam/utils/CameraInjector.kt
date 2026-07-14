@@ -288,20 +288,25 @@ class CameraInjector(
         bmp.getPixels(pixels, 0, outW, 0, 0, outW, outH)
         if (bmp !== src) bmp.recycle()
 
+        // Full-range (0-255) BT.601 RGB→YUYV conversion.
+        // Matches V4L2_COLORSPACE_SRGB set on the device so the consumer
+        // interprets the YUV values as full-range and colours stay accurate.
         val yuyv = ByteArray(outW * outH * 2)
         var idx = 0; var pi = 0
         while (pi < pixels.size - 1) {
             val p0 = pixels[pi]; val p1 = pixels[pi + 1]
             val r0 = (p0 shr 16) and 0xff; val g0 = (p0 shr 8) and 0xff; val b0 = p0 and 0xff
             val r1 = (p1 shr 16) and 0xff; val g1 = (p1 shr 8) and 0xff; val b1 = p1 and 0xff
-            val y0 = ((66*r0+129*g0+25*b0+128) shr 8)+16
-            val y1 = ((66*r1+129*g1+25*b1+128) shr 8)+16
-            val u  = ((-38*r0-74*g0+112*b0+128) shr 8)+128
-            val v  = ((112*r0-94*g0-18*b0+128) shr 8)+128
-            yuyv[idx++] = y0.coerceIn(16,235).toByte()
-            yuyv[idx++] = u.coerceIn(16,240).toByte()
-            yuyv[idx++] = y1.coerceIn(16,235).toByte()
-            yuyv[idx++] = v.coerceIn(16,240).toByte()
+            // Full-range BT.601: Y = (77R + 150G + 29B) / 256
+            val y0 = (77*r0 + 150*g0 + 29*b0) shr 8
+            val y1 = (77*r1 + 150*g1 + 29*b1) shr 8
+            // U = (-43R - 85G + 128B) / 256 + 128, V = (128R - 107G - 21B) / 256 + 128
+            val u  = (((-43*r0 - 85*g0 + 128*b0) shr 8) + 128)
+            val v  = (((128*r0 - 107*g0 - 21*b0) shr 8) + 128)
+            yuyv[idx++] = y0.coerceIn(0, 255).toByte()
+            yuyv[idx++] = u.coerceIn(0, 255).toByte()
+            yuyv[idx++] = y1.coerceIn(0, 255).toByte()
+            yuyv[idx++] = v.coerceIn(0, 255).toByte()
             pi += 2
         }
         return yuyv

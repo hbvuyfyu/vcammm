@@ -16,6 +16,12 @@
 
 static volatile int g_stop_flag = 0;
 
+static inline int clamp(int v, int lo, int hi) {
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
 void v4l2_request_stop() {
     g_stop_flag = 1;
 }
@@ -54,6 +60,9 @@ int v4l2_set_format(int fd, int width, int height, uint32_t format) {
     fmt.fmt.pix.bytesperline = width * 2; // YUYV: 2 bytes per pixel
     fmt.fmt.pix.sizeimage = width * height * 2;
     fmt.fmt.pix.colorspace = V4L2_COLORSPACE_SRGB;
+    fmt.fmt.pix.quantization = V4L2_QUANTIZATION_FULL_RANGE;
+    fmt.fmt.pix.xfer_func = V4L2_XFER_FUNC_SRGB;
+    fmt.fmt.pix.ycbcr_enc = V4L2_YCBCR_ENC_601;
 
     if (ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
         // Try YUV420
@@ -100,7 +109,9 @@ int v4l2_check_device(const char* device_path) {
     return has_output;
 }
 
-/* Color conversion functions */
+/* Full-range (0-255) BT.601 RGB→YUV conversion.
+ * Matches V4L2_COLORSPACE_SRGB so consumers interpret values as full-range
+ * and colours stay accurate (no red tint from limited-range clamping). */
 void rgba_to_yuyv(const uint8_t* rgba, uint8_t* yuyv, int width, int height) {
     int size = width * height;
     for (int i = 0; i < size / 2; i++) {
@@ -111,15 +122,15 @@ void rgba_to_yuyv(const uint8_t* rgba, uint8_t* yuyv, int width, int height) {
         int g1 = rgba[i * 8 + 5];
         int b1 = rgba[i * 8 + 6];
 
-        int y0 = ((66 * r0 + 129 * g0 + 25 * b0 + 128) >> 8) + 16;
-        int y1 = ((66 * r1 + 129 * g1 + 25 * b1 + 128) >> 8) + 16;
-        int u = ((-38 * r0 - 74 * g0 + 112 * b0 + 128) >> 8) + 128;
-        int v = ((112 * r0 - 94 * g0 - 18 * b0 + 128) >> 8) + 128;
+        int y0 = (77 * r0 + 150 * g0 + 29 * b0) >> 8;
+        int y1 = (77 * r1 + 150 * g1 + 29 * b1) >> 8;
+        int u = ((-43 * r0 - 85 * g0 + 128 * b0) >> 8) + 128;
+        int v = ((128 * r0 - 107 * g0 - 21 * b0) >> 8) + 128;
 
-        yuyv[i * 4 + 0] = (uint8_t)y0;
-        yuyv[i * 4 + 1] = (uint8_t)u;
-        yuyv[i * 4 + 2] = (uint8_t)y1;
-        yuyv[i * 4 + 3] = (uint8_t)v;
+        yuyv[i * 4 + 0] = (uint8_t)clamp(y0, 0, 255);
+        yuyv[i * 4 + 1] = (uint8_t)clamp(u,  0, 255);
+        yuyv[i * 4 + 2] = (uint8_t)clamp(y1, 0, 255);
+        yuyv[i * 4 + 3] = (uint8_t)clamp(v,  0, 255);
     }
 }
 
@@ -135,15 +146,15 @@ void rgba_to_yuv420(const uint8_t* rgba, uint8_t* yuv, int width, int height) {
             int g = rgba[idx + 1];
             int b = rgba[idx + 2];
 
-            int y = ((66 * r + 129 * g + 25 * b + 128) >> 8) + 16;
-            y_plane[j * width + i] = (uint8_t)y;
+            int y = (77 * r + 150 * g + 29 * b) >> 8;
+            y_plane[j * width + i] = (uint8_t)clamp(y, 0, 255);
 
             if (j % 2 == 0 && i % 2 == 0) {
-                int u = ((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128;
-                int v = ((112 * r - 94 * g - 18 * b + 128) >> 8) + 128;
+                int u = ((-43 * r - 85 * g + 128 * b) >> 8) + 128;
+                int v = ((128 * r - 107 * g - 21 * b) >> 8) + 128;
                 int uv_idx = (j / 2) * (width / 2) + (i / 2);
-                u_plane[uv_idx] = (uint8_t)u;
-                v_plane[uv_idx] = (uint8_t)v;
+                u_plane[uv_idx] = (uint8_t)clamp(u, 0, 255);
+                v_plane[uv_idx] = (uint8_t)clamp(v, 0, 255);
             }
         }
     }

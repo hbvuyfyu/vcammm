@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import android.view.*
 import android.widget.*
 import androidx.core.app.NotificationCompat
@@ -14,12 +15,12 @@ import com.vcam.ui.PreviewActivity
 import com.vcam.utils.MediaSlotManager
 
 /**
- * FloatWindowService — draggable floating overlay.
+ * FloatWindowService — draggable floating overlay with collapsed/expanded states.
  *
- * Shows:
- *   • Slot switcher buttons [1][2][3][4][5]
- *   • Preview button (👁) → opens PreviewActivity for current slot
- *   • Rotation, Mirror, Stop buttons
+ * Collapsed: shows just the app icon. Tap to expand the full control panel.
+ * Expanded: shows slot switcher, preview/rotate/mirror/stop buttons.
+ *           Tap the icon or close button to collapse back.
+ * Both states are draggable anywhere on screen.
  */
 class FloatWindowService : Service() {
 
@@ -40,6 +41,9 @@ class FloatWindowService : Service() {
 
         private const val CHANNEL_ID    = "vcam_float_channel"
         private const val NOTIF_ID      = 1002
+
+        private const val CLICK_THRESHOLD_MS = 250L
+        private const val CLICK_SLOP_PX  = 12f
     }
 
     private var windowManager: WindowManager? = null
@@ -48,8 +52,11 @@ class FloatWindowService : Service() {
     private var currentRotation = 0
     private var isMirrored = false
     private var activeSlot = 1
+    private var isExpanded = false
 
-    // Slot button views
+    private var collapsedView: View? = null
+    private var expandedView: View? = null
+
     private val slotBtnIds = listOf(
         R.id.btn_slot_1, R.id.btn_slot_2, R.id.btn_slot_3,
         R.id.btn_slot_4, R.id.btn_slot_5
@@ -88,6 +95,9 @@ class FloatWindowService : Service() {
 
         val view = LayoutInflater.from(this).inflate(R.layout.float_window, null)
 
+        collapsedView = view.findViewById(R.id.float_collapsed)
+        expandedView  = view.findViewById(R.id.float_expanded)
+
         // Status labels
         view.findViewById<TextView>(R.id.tv_float_target)?.text =
             if (targetName.length > 16) targetName.take(14) + "…" else targetName
@@ -100,7 +110,6 @@ class FloatWindowService : Service() {
                 switchToSlot(view, slot)
             }
         }
-        // Mark slot 1 as active initially
         updateSlotButtonVisuals(view, activeSlot)
 
         // ── Preview button ──
@@ -132,6 +141,11 @@ class FloatWindowService : Service() {
             stopSelf()
         }
 
+        // ── Collapse button (X) in expanded header ──
+        view.findViewById<ImageButton>(R.id.btn_float_collapse)?.setOnClickListener {
+            collapse()
+        }
+
         // Window params
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -146,10 +160,29 @@ class FloatWindowService : Service() {
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm; layoutParams = lp; floatView = view
 
-        // Drag on header
+        // Attach the unified drag+tap listener to both the collapsed icon
+        // and the expanded header so the user can drag from anywhere.
+        val dragListener = DragAndTapListener(view, wm, lp)
+
+        collapsedView?.setOnTouchListener(dragListener)
         val dragHandle = view.findViewById<View>(R.id.float_drag_handle)
-        dragHandle?.setOnTouchListener(DragTouchListener(view, wm, lp))
+        dragHandle?.setOnTouchListener(dragListener)
+
         wm.addView(view, lp)
+    }
+
+    // ── Collapse / Expand ────────────────────────────────────────────
+
+    private fun collapse() {
+        isExpanded = false
+        collapsedView?.visibility = View.VISIBLE
+        expandedView?.visibility  = View.GONE
+    }
+
+    private fun expand() {
+        isExpanded = true
+        collapsedView?.visibility = View.GONE
+        expandedView?.visibility  = View.VISIBLE
     }
 
     // ── Slot switching ────────────────────────────────────────────────
@@ -171,7 +204,6 @@ class FloatWindowService : Service() {
             val slot = idx + 1
             val tv = view.findViewById<TextView>(btnId) ?: return@forEachIndexed
             val isActive = slot == active
-            tv.textColors?.let { }  // just trigger refresh
             tv.setTextColor(if (isActive) 0xFFFFFFFF.toInt() else 0xFFAAAAAA.toInt())
             tv.setBackgroundResource(
                 when {
@@ -204,29 +236,54 @@ class FloatWindowService : Service() {
         floatView = null
     }
 
-    // ── Drag listener ─────────────────────────────────────────────────
+    // ── Unified drag + tap listener ───────────────────────────────────
 
-    private inner class DragTouchListener(
+    /**
+     * Handles both dragging the overlay and detecting taps (to toggle
+     * collapsed/expanded state). Uses a time + slop threshold to distinguish
+     * a tap from a drag gesture.
+     */
+    private inner class DragAndTapListener(
         private val view: View,
         private val wm: WindowManager,
         private val lp: WindowManager.LayoutParams
     ) : View.OnTouchListener {
-        private var initX = 0; private var initY = 0
-        private var touchX = 0f; private var touchY = 0f
+        private var initX = 0
+        private var initY = 0
+        private var touchX = 0f
+        private var touchY = 0f
+        private var downTime = 0L
+        private var moved = false
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initX = lp.x; initY = lp.y
                     touchX = event.rawX; touchY = event.rawY
+                    downTime = SystemClock.uptimeMillis()
+                    moved = false
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    lp.x = initX + (event.rawX - touchX).toInt()
-                    lp.y = initY + (event.rawY - touchY).toInt()
-                    wm.updateViewLayout(view, lp)
+                    val dx = event.rawX - touchX
+                    val dy = event.rawY - touchY
+                    if (Math.abs(dx) > CLICK_SLOP_PX || Math.abs(dy) > CLICK_SLOP_PX) {
+                        moved = true
+                    }
+                    if (moved) {
+                        lp.x = initX + dx.toInt()
+                        lp.y = initY + dy.toInt()
+                        wm.updateViewLayout(view, lp)
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    val elapsed = SystemClock.uptimeMillis() - downTime
+                    if (!moved && elapsed < CLICK_THRESHOLD_MS) {
+                        // Treat as a tap → toggle expanded/collapsed
+                        if (isExpanded) collapse() else expand()
+                    }
                 }
             }
-            return false
+            return true
         }
     }
 
