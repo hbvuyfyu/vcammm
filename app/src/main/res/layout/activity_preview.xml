@@ -4,9 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="#0A0A0A">
 
-    <!-- Zoomable image -->
     <ImageView
         android:id="@+id/iv_preview_image"
         android:layout_width="match_parent"
@@ -18,16 +17,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Top bar -->
     <LinearLayout
         android:id="@+id/preview_top_bar"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:background="#AA000000"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#CC0A0A0A"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -39,41 +37,40 @@
             android:layout_weight="1"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
-            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
             android:text="معاينة"/>
 
         <TextView
             android:id="@+id/tv_preview_zoom"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#AAAAAA"
+            android:textColor="#9CA3AF"
             android:textSize="13sp"
             android:layout_marginEnd="12dp"
             android:text="100%"/>
 
         <ImageButton
             android:id="@+id/btn_preview_close"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:background="@android:color/transparent"
             android:tint="#FFFFFF"
             android:contentDescription="Close"/>
     </LinearLayout>
 
-    <!-- Bottom zoom controls -->
     <LinearLayout
         android:id="@+id/preview_bottom_bar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:background="#AA000000"
-        android:padding="4dp"
+        android:background="#CC0A0A0A"
+        android:padding="6dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="32dp">
 
         <Button
             android:id="@+id/btn_preview_zoom_out"

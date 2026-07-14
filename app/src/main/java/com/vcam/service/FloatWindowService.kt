@@ -59,7 +59,8 @@ class FloatWindowService : Service() {
 
     private val slotBtnIds = listOf(
         R.id.btn_slot_1, R.id.btn_slot_2, R.id.btn_slot_3,
-        R.id.btn_slot_4, R.id.btn_slot_5
+        R.id.btn_slot_4, R.id.btn_slot_5, R.id.btn_slot_6,
+        R.id.btn_slot_7, R.id.btn_slot_8
     )
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -207,10 +208,10 @@ class FloatWindowService : Service() {
             tv.setTextColor(if (isActive) 0xFFFFFFFF.toInt() else 0xFFAAAAAA.toInt())
             tv.setBackgroundResource(
                 when {
-                    isActive && slot == 5 -> R.drawable.bg_slot_btn_video_active
+                    isActive && slot >= 5 -> R.drawable.bg_slot_btn_video_active
                     isActive              -> R.drawable.bg_slot_btn_active
-                    slot == 5            -> R.drawable.bg_slot_btn_video
-                    else                 -> R.drawable.bg_slot_btn_inactive
+                    slot >= 5             -> R.drawable.bg_slot_btn_video
+                    else                  -> R.drawable.bg_slot_btn_inactive
                 }
             )
         }
@@ -218,7 +219,7 @@ class FloatWindowService : Service() {
 
     private fun updateTypeLabel(view: View, slot: Int) {
         view.findViewById<TextView>(R.id.tv_float_type)?.text =
-            if (slot == 5) "🎬 فيديو" else "📷 صورة $slot"
+            if (slot >= 5) "🎬 فيديو ${slot - 4}" else "📷 صورة $slot"
     }
 
     // ── Preview ───────────────────────────────────────────────────────

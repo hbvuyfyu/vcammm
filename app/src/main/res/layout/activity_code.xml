@@ -5,31 +5,30 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="#000000"
+    android:background="@color/color_background"
     android:padding="32dp">
 
     <ImageView
         android:layout_width="88dp"
         android:layout_height="88dp"
         android:src="@drawable/ic_camera_launcher"
-        android:tint="#4F8EF7"
         android:contentDescription="Virtual Cam logo"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="20dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Virtual Cam"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/color_text_primary"
         android:textSize="28sp"
-        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
         android:layout_marginBottom="6dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Enter your access code to continue"
-        android:textColor="#888888"
+        android:textColor="@color/color_text_secondary"
         android:textSize="14sp"
         android:gravity="center"
         android:layout_marginBottom="36dp"/>
@@ -40,8 +39,8 @@
         android:layout_height="52dp"
         android:background="@drawable/bg_input_field"
         android:hint="Access Code"
-        android:textColorHint="#555555"
-        android:textColor="#FFFFFF"
+        android:textColorHint="@color/neutral_400"
+        android:textColor="@color/color_text_primary"
         android:inputType="textPassword"
         android:gravity="center"
         android:textSize="16sp"
@@ -49,22 +48,24 @@
         android:paddingEnd="16dp"
         android:layout_marginBottom="16dp"/>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_submit"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:text="Unlock"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#4F8EF7"
-        android:layout_marginBottom="20dp"/>
+        android:textColor="@color/white"
+        android:backgroundTint="@color/color_accent"
+        app:cornerRadius="12dp"
+        android:layout_marginBottom="20dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto"/>
 
     <ProgressBar
         android:id="@+id/progress_bar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:indeterminateTint="#4F8EF7"
+        android:indeterminateTint="@color/color_accent"
         android:visibility="gone"
         android:layout_marginBottom="16dp"/>
 
@@ -73,7 +74,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:textColor="#EF4444"
+        android:textColor="@color/error"
         android:textSize="13sp"
         android:visibility="gone"/>
 

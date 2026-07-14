@@ -164,7 +164,7 @@ class VCamService : Service() {
                     injector?.start()
                 }
                 updateNotification("VCam — Slot $slot Active",
-                    if (isVideo) "🎬 فيديو" else "📷 صورة $slot")
+                    if (isVideo) "🎬 فيديو ${slot - 4}" else "📷 صورة $slot")
             } catch (_: Exception) {}
         }
     }

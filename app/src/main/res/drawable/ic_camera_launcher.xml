@@ -1,34 +1,38 @@
-<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Background rounded square -->
+    <path
+        android:fillColor="#0A0A0A"
+        android:pathData="M24,8 L84,8 C92.8,8 100,15.2 100,24 L100,84 C100,92.8 92.8,100 84,100 L24,100 C15.2,100 8,92.8 8,84 L8,24 C8,15.2 15.2,8 24,8 Z"/>
+
     <!-- Camera body -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M18,36 C18,32.7 20.7,30 24,30 L28,30 L32,22 L76,22 L80,30 L84,30 C87.3,30 90,32.7 90,36 L90,78 C90,81.3 87.3,84 84,84 L24,84 C20.7,84 18,81.3 18,78 Z"/>
+        android:pathData="M28,42 C28,39 30,37 33,37 L37,37 L41,30 L67,30 L71,37 L75,37 C78,37 80,39 80,42 L80,72 C80,75 78,77 75,77 L33,77 C30,77 28,75 28,72 Z"/>
 
     <!-- Lens outer ring -->
     <path
-        android:fillColor="#1A1A2E"
-        android:pathData="M54,40 C43.0,40 34,49.0 34,60 C34,71.0 43.0,80 54,80 C65.0,80 74,71.0 74,60 C74,49.0 65.0,40 54,40 Z"/>
+        android:fillColor="#0A0A0A"
+        android:pathData="M54,44 C46,44 40,50 40,58 C40,66 46,72 54,72 C62,72 68,66 68,58 C68,50 62,44 54,44 Z"/>
 
-    <!-- Lens inner -->
+    <!-- Lens inner accent -->
     <path
-        android:fillColor="#4F8EF7"
-        android:pathData="M54,46 C46.3,46 40,52.3 40,60 C40,67.7 46.3,74 54,74 C61.7,74 68,67.7 68,60 C68,52.3 61.7,46 54,46 Z"/>
+        android:fillColor="#2563EB"
+        android:pathData="M54,49 C48.6,49 44,53.6 44,59 C44,64.4 48.6,69 54,69 C59.4,69 64,64.4 64,59 C64,53.6 59.4,49 54,49 Z"/>
 
     <!-- Lens highlight -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillAlpha="0.3"
-        android:pathData="M47,50 C45,53 44,56 44,60 C44,62 44.4,63.8 45,65.5 C43.3,62.5 42.5,59 43,55.5 C43.8,52 45.5,49 47,50 Z"/>
+        android:fillAlpha="0.25"
+        android:pathData="M49,52 C47,55 46,58 46,61 C46,63 46.5,64.5 47,66 C45.5,63 45,60 46,57 C46.5,54.5 48,52.5 49,52 Z"/>
 
-    <!-- Flash -->
+    <!-- Flash indicator -->
     <path
-        android:fillColor="#1A1A2E"
-        android:pathData="M72,34 L82,34 C83.1,34 84,34.9 84,36 L84,42 C84,43.1 83.1,44 82,44 L72,44 C70.9,44 70,43.1 70,42 L70,36 C70,34.9 70.9,34 72,34 Z"/>
+        android:fillColor="#2563EB"
+        android:pathData="M72,40 L76,40 C76.5,40 77,40.5 77,41 L77,45 C77,45.5 76.5,46 76,46 L72,46 C71.5,46 71,45.5 71,45 L71,41 C71,40.5 71.5,40 72,40 Z"/>
 
 </vector>

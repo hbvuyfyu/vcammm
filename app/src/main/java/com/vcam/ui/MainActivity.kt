@@ -31,19 +31,30 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
 
-    // Track which slot is being picked
     private var pendingSlot = 1
 
-    private val pickMedia = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    private val pickImage = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri ?: return@registerForActivityResult
-        val slot    = pendingSlot
-        val isVideo = slot == 5
+        try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+        val slot = pendingSlot
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
-                MediaSlotManager.setSlot(this@MainActivity, slot, uri, isVideo)
+                MediaSlotManager.setSlot(this@MainActivity, slot, uri, isVideo = false)
             }
             refreshSlotUI(slot)
-            // Enable Start if slot 1 is set
+            binding.btnStartStop.isEnabled = MediaSlotManager.isSlotSet(this@MainActivity, 1)
+        }
+    }
+
+    private val pickVideo = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri ?: return@registerForActivityResult
+        try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+        val slot = pendingSlot
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                MediaSlotManager.setSlot(this@MainActivity, slot, uri, isVideo = true)
+            }
+            refreshSlotUI(slot)
             binding.btnStartStop.isEnabled = MediaSlotManager.isSlotSet(this@MainActivity, 1)
         }
     }
@@ -70,8 +81,7 @@ class MainActivity : AppCompatActivity() {
         setupSlotPickers()
         setupStartStop()
         requestPermissions()
-        // Refresh all slot UIs on create
-        (1..5).forEach { refreshSlotUI(it) }
+        (1..8).forEach { refreshSlotUI(it) }
         binding.btnStartStop.isEnabled = MediaSlotManager.isSlotSet(this, 1)
     }
 
@@ -133,14 +143,21 @@ class MainActivity : AppCompatActivity() {
         ).forEach { (btnId, slot) ->
             binding.root.findViewById<View>(btnId)?.setOnClickListener {
                 pendingSlot = slot
-                pickMedia.launch("image/*")
+                pickImage.launch(arrayOf("image/*"))
             }
         }
 
-        // Video slot 5
-        binding.root.findViewById<View>(R.id.btn_pick_slot_5)?.setOnClickListener {
-            pendingSlot = 5
-            pickMedia.launch("video/*")
+        // Video slots 5-8
+        listOf(
+            R.id.btn_pick_slot_5 to 5,
+            R.id.btn_pick_slot_6 to 6,
+            R.id.btn_pick_slot_7 to 7,
+            R.id.btn_pick_slot_8 to 8,
+        ).forEach { (btnId, slot) ->
+            binding.root.findViewById<View>(btnId)?.setOnClickListener {
+                pendingSlot = slot
+                pickVideo.launch(arrayOf("video/*"))
+            }
         }
     }
 
@@ -149,18 +166,20 @@ class MainActivity : AppCompatActivity() {
     private fun refreshSlotUI(slot: Int) {
         val ivId = when (slot) {
             1 -> R.id.iv_slot_1; 2 -> R.id.iv_slot_2; 3 -> R.id.iv_slot_3
-            4 -> R.id.iv_slot_4; else -> R.id.iv_slot_5
+            4 -> R.id.iv_slot_4; 5 -> R.id.iv_slot_5; 6 -> R.id.iv_slot_6
+            7 -> R.id.iv_slot_7; 8 -> R.id.iv_slot_8; else -> return
         }
         val tvId = when (slot) {
             1 -> R.id.tv_slot_1_status; 2 -> R.id.tv_slot_2_status; 3 -> R.id.tv_slot_3_status
-            4 -> R.id.tv_slot_4_status; else -> R.id.tv_slot_5_status
+            4 -> R.id.tv_slot_4_status; 5 -> R.id.tv_slot_5_status; 6 -> R.id.tv_slot_6_status
+            7 -> R.id.tv_slot_7_status; 8 -> R.id.tv_slot_8_status; else -> return
         }
         val iv = binding.root.findViewById<ImageView>(ivId) ?: return
         val tv = binding.root.findViewById<TextView>(tvId) ?: return
 
         if (MediaSlotManager.isSlotSet(this, slot)) {
             tv.text    = getString(R.string.slot_ready)
-            tv.setTextColor(0xFF22C55E.toInt())
+            tv.setTextColor(0xFF16A34A.toInt())
             iv.visibility = View.VISIBLE
             lifecycleScope.launch {
                 val bmp: Bitmap? = withContext(Dispatchers.IO) {
@@ -170,7 +189,7 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             tv.text = getString(R.string.slot_empty)
-            tv.setTextColor(0xFF555555.toInt())
+            tv.setTextColor(0xFF888888.toInt())
             iv.visibility = View.GONE
         }
     }
@@ -212,10 +231,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun doStartService() {
         val slot1Path = MediaSlotManager.getSlotPath(this, 1) ?: return
+        val isVideo = MediaSlotManager.isSlotVideo(this, 1)
         val intent = Intent(this, VCamService::class.java).apply {
             action = VCamService.ACTION_START
             putExtra(VCamService.EXTRA_MEDIA_PATH, slot1Path)
-            putExtra(VCamService.EXTRA_IS_VIDEO, false)
+            putExtra(VCamService.EXTRA_IS_VIDEO, isVideo)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
         else startService(intent)

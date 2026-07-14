@@ -4,7 +4,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
-    <!-- ── Collapsed state: just the floating icon ── -->
+    <!-- Collapsed state: floating icon -->
     <FrameLayout
         android:id="@+id/float_collapsed"
         android:layout_width="56dp"
@@ -22,16 +22,16 @@
             android:contentDescription="VCam floating icon"/>
     </FrameLayout>
 
-    <!-- ── Expanded state: full control panel ── -->
+    <!-- Expanded state: full control panel -->
     <LinearLayout
         android:id="@+id/float_expanded"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_float_panel"
-        android:padding="10dp"
+        android:padding="12dp"
         android:elevation="12dp"
-        android:minWidth="220dp"
+        android:minWidth="280dp"
         android:visibility="gone">
 
         <!-- Header: status + target (draggable) -->
@@ -41,7 +41,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingBottom="8dp">
+            android:paddingBottom="10dp">
 
             <View
                 android:layout_width="8dp"
@@ -63,7 +63,7 @@
                 android:id="@+id/tv_float_type"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#B0C4DE"
+                android:textColor="#BFDBFE"
                 android:textSize="10sp"
                 android:paddingStart="6dp"
                 android:text="📷 صورة 1"/>
@@ -80,13 +80,13 @@
                 android:padding="4dp"/>
         </LinearLayout>
 
-        <!-- ── Slot switcher buttons: [1] [2] [3] [4] [5] ── -->
+        <!-- Image slot buttons row: [1] [2] [3] [4] -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="6dp">
 
             <TextView
                 android:id="@+id/btn_slot_1"
@@ -147,6 +147,15 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="Switch to slot 4"/>
+        </LinearLayout>
+
+        <!-- Video slot buttons row: [5] [6] [7] [8] -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="10dp">
 
             <TextView
                 android:id="@+id/btn_slot_5"
@@ -158,12 +167,57 @@
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:background="@drawable/bg_slot_btn_video"
+                android:layout_marginEnd="4dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="Switch to slot 5 (video)"/>
+
+            <TextView
+                android:id="@+id/btn_slot_6"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:text="6"
+                android:gravity="center"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_slot_btn_video"
+                android:layout_marginEnd="4dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Switch to slot 6 (video)"/>
+
+            <TextView
+                android:id="@+id/btn_slot_7"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:text="7"
+                android:gravity="center"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_slot_btn_video"
+                android:layout_marginEnd="4dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Switch to slot 7 (video)"/>
+
+            <TextView
+                android:id="@+id/btn_slot_8"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:text="8"
+                android:gravity="center"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_slot_btn_video"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Switch to slot 8 (video)"/>
         </LinearLayout>
 
-        <!-- ── Control buttons row ── -->
+        <!-- Control buttons row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

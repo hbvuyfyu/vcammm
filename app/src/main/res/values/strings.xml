@@ -26,17 +26,21 @@
     <string name="grant">Grant</string>
     <string name="skip">Skip</string>
     <!-- Slot strings -->
-    <string name="slots_title">حقول الوسائط</string>
+    <string name="slots_title">حقول الصور</string>
+    <string name="slots_video_title">حقول الفيديو</string>
     <string name="slot_image_1">📷 صورة 1 (تبدأ تلقائياً)</string>
     <string name="slot_image_2">📷 صورة 2</string>
     <string name="slot_image_3">📷 صورة 3</string>
     <string name="slot_image_4">📷 صورة 4</string>
-    <string name="slot_video_5">🎬 فيديو (الحقل 5)</string>
+    <string name="slot_video_5">🎬 فيديو 1</string>
+    <string name="slot_video_6">🎬 فيديو 2</string>
+    <string name="slot_video_7">🎬 فيديو 3</string>
+    <string name="slot_video_8">🎬 فيديو 4</string>
     <string name="slot_empty">فارغ — اضغط لاختيار ملف</string>
     <string name="slot_ready">جاهز ✓</string>
     <string name="slot_switched">تم التبديل إلى الحقل %d</string>
     <string name="slot_not_set">الحقل %d فارغ — ارفع ملفاً أولاً</string>
-    <string name="start_hint">ارفع ملفات في الحقول، ثم اضغط Start.\nتحكم سريع بالأزرار 1–5 في النافذة العائمة.</string>
+    <string name="start_hint">ارفع ملفات في الحقول، ثم اضغط Start.\nتحكم سريع بالأزرار 1–8 في النافذة العائمة.</string>
     <!-- Required by item_app.xml (kept for layout compatibility) -->
     <string name="app_icon">App icon</string>
     <string name="camera_badge">CAM</string>
