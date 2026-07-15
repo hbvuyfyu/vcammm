@@ -109,12 +109,24 @@ class CameraInjector(
                     if (mirror)        VcplaxEngine.setMirror(true)
 
                     // Stay alive and propagate rotation/mirror changes
+                    var watchdogDelay = 500L
                     while (running) {
-                        delay(500)
+                        delay(watchdogDelay)
                         // Check if vcplax is still running
                         if (!VcplaxEngine.isRunning) {
                             Log.w(TAG, "vcplax stopped unexpectedly — restarting injection")
-                            VcplaxEngine.startInjection(mediaPath, loop = isVideo)
+                            val restarted = VcplaxEngine.startInjection(mediaPath, loop = isVideo)
+                            if (!restarted) {
+                                Log.w(TAG, "restart failed — retrying in 2s")
+                                watchdogDelay = 2000L
+                            } else {
+                                // Re-apply rotation/mirror after restart
+                                if (rotation != 0) VcplaxEngine.setRotation(rotation)
+                                if (mirror)        VcplaxEngine.setMirror(true)
+                                watchdogDelay = 500L
+                            }
+                        } else {
+                            watchdogDelay = 500L
                         }
                     }
                     return

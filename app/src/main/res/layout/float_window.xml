@@ -73,11 +73,10 @@
                 android:layout_width="28dp"
                 android:layout_height="28dp"
                 android:src="@drawable/ic_close"
-                android:background="@android:color/transparent"
-                android:tint="#FFFFFF"
-                android:alpha="0.7"
+                android:background="@drawable/bg_float_btn_collapse"
+                android:tint="#1A1A2E"
                 android:contentDescription="Collapse"
-                android:padding="4dp"/>
+                android:padding="5dp"/>
         </LinearLayout>
 
         <!-- Image slot buttons row: [1] [2] [3] [4] -->
@@ -222,48 +221,62 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="4dp">
 
             <ImageButton
                 android:id="@+id/btn_float_preview"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
                 android:src="@android:drawable/ic_menu_view"
-                android:background="@android:color/transparent"
-                android:tint="#22C55E"
-                android:contentDescription="Preview current slot"
-                android:padding="8dp"/>
+                android:background="@drawable/bg_float_btn_preview"
+                android:tint="#FFFFFF"
+                android:scaleType="fitCenter"
+                android:padding="10dp"
+                android:contentDescription="Preview current slot"/>
 
             <ImageButton
                 android:id="@+id/btn_float_rotate"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
                 android:src="@drawable/ic_refresh"
-                android:background="@android:color/transparent"
-                android:tint="#4F8EF7"
-                android:contentDescription="Rotate 90°"
-                android:padding="8dp"/>
+                android:background="@drawable/bg_float_btn_rotate"
+                android:tint="#FFFFFF"
+                android:scaleType="fitCenter"
+                android:padding="10dp"
+                android:contentDescription="Rotate 90°"/>
 
             <ImageButton
                 android:id="@+id/btn_float_mirror"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
                 android:src="@drawable/ic_target"
-                android:background="@android:color/transparent"
-                android:tint="#4F8EF7"
+                android:background="@drawable/bg_float_btn_mirror"
+                android:tint="#FFFFFF"
+                android:scaleType="fitCenter"
                 android:alpha="0.5"
-                android:contentDescription="Mirror"
-                android:padding="8dp"/>
+                android:padding="10dp"
+                android:contentDescription="Mirror"/>
 
             <ImageButton
                 android:id="@+id/btn_float_stop"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
                 android:src="@drawable/ic_stop"
-                android:background="@android:color/transparent"
-                android:tint="#EF4444"
-                android:contentDescription="Stop VCam"
-                android:padding="8dp"/>
+                android:background="@drawable/bg_float_btn_stop"
+                android:tint="#FFFFFF"
+                android:scaleType="fitCenter"
+                android:padding="10dp"
+                android:contentDescription="Stop VCam"/>
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

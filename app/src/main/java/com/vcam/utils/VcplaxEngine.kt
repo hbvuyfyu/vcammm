@@ -144,6 +144,15 @@ object VcplaxEngine {
             return@withContext try {
                 val result = svc.start(mediaPath, autoRotate = false, loop = loop)
                 Log.d(TAG, "start() returned: $result")
+                // Explicitly set loop mode via dedicated transaction — some
+                // vcplax builds ignore the loop flag in start() and require
+                // a separate setLoop() call, which causes video to stop
+                // after one playthrough instead of looping.
+                if (loop) {
+                    try { svc.setLoop(true) } catch (e: Exception) {
+                        Log.w(TAG, "setLoop failed: ${e.message}")
+                    }
+                }
                 // Wait for the injection to become active
                 var retries = 0
                 while (retries < 6 && !svc.isRunning) {
