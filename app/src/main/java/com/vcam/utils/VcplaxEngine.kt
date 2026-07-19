@@ -147,7 +147,8 @@ object VcplaxEngine {
                 // Clear any default range limit so the full video plays.
                 // vcplax defaults to a 20-second playback window unless
                 // setRange(0, 0) is called explicitly (0 = start, 0 = full length).
-                try { svc.setRange(0L, durationUs) } catch (e: Exception) {
+                try { svc.setRange(0L, oL) } catch (e: Exception) {
+
                     Log.w(TAG, "setRange failed: ${e.message}")
                 }
                 // Explicitly set loop mode via dedicated transaction — some
