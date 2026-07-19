@@ -143,9 +143,44 @@ object VcplaxEngine {
         withContext(Dispatchers.IO) {
             val svc = proxy ?: connect() ?: return@withContext false
             return@withContext try {
-                val result = svc.start(mediaPath, autoRotate = false, loop = loop)
-                Log.d(TAG, "start() returned: $result")
 
+                // ── Step 1: resolve actual video duration BEFORE start() ──────────────
+                // vcplax applies its default short playback window at the moment start()
+                // is processed.  We must deliver setRange before that moment so the
+                // window is correctly set from the first frame.
+                val durationUs = getVideoDurationUs(mediaPath)
+                Log.d(TAG, "Video duration: ${durationUs / 1000L} ms")
+
+                // ── Step 2: broadcast setRange BEFORE start() ─────────────────────────
+                // TX_SET_RANGE was reverse-engineered and may be wrong (candidates: 20,
+                // 21, 22).  setRangeBroadcast tries all three so the correct handler is
+                // always reached regardless of the vcplax build installed on the device.
+                // Calling this before start() ensures the range is configured before
+                // vcplax begins decoding the first frame.
+                svc.setRangeBroadcast(0L, if (durationUs > 0L) durationUs else 0L)
+                Log.d(TAG, "pre-start setRangeBroadcast sent")
+
+                // ── Step 3: start injection ───────────────────────────────────────────
+                // Two variants are tried:
+                //   A) startLoopOnly(url, loop)   — for builds whose start() signature
+                //      is (url, loop); sending the extra autoRotate int in the standard
+                //      start() puts 0 in the loop position → video plays once, no loop.
+                //   B) start(url, autoRotate, loop) — the original three-arg form kept
+                //      as a fallback for builds that do accept autoRotate.
+                val resultA = try {
+                    val r = svc.startLoopOnly(mediaPath, loop)
+                    Log.d(TAG, "startLoopOnly() returned: $r")
+                    r
+                } catch (e: Exception) {
+                    Log.w(TAG, "startLoopOnly failed: ${e.message}"); -1
+                }
+
+                val result = svc.start(mediaPath, autoRotate = false, loop = loop)
+                Log.d(TAG, "start() returned: $result (startLoopOnly returned: $resultA)")
+
+                // ── Step 4: broadcast setRange AFTER start() too ──────────────────────
+                // Belt-and-suspenders: some builds ignore pre-start setRange and only
+                // apply it after the media has been opened by start().
                 // Clear any default range limit so the full video plays.
                 // vcplax defaults to a short playback window unless the
                 // actual video duration is passed explicitly via setRange.
@@ -153,7 +188,8 @@ object VcplaxEngine {
                 // "full length" per the IMyBinderService contract, then also
                 // send the explicit duration in microseconds as a fallback for
                 // builds that require a non-zero value.
-                val durationUs = getVideoDurationUs(mediaPath)
+                svc.setRangeBroadcast(0L, if (durationUs > 0L) durationUs else 0L)
+                Log.d(TAG, "post-start setRangeBroadcast sent")
                 try {
                     // endUs = 0L → "play to end" (full-length sentinel)
                     svc.setRange(0L, 0L)

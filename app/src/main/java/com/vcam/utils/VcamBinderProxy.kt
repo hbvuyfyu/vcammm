@@ -3,6 +3,7 @@ package com.vcam.utils
 import android.os.IBinder
 import android.os.IInterface
 import android.os.Parcel
+import android.util.Log
 
 /**
  * Binder proxy for IMyBinderService implemented by vcplax.
@@ -23,8 +24,14 @@ class VcamBinderProxy(private val binder: IBinder) : IInterface {
         private const val TX_SET_AUTO_ROTATE = 17
         private const val TX_SET_ROTATION   = 18
         private const val TX_SET_LOOP       = 19
+        // TX_SET_RANGE: the exact code is uncertain (reverse-engineered).
+        // Candidates 20, 21, 22 are all tried via setRangeBroadcast().
         private const val TX_SET_RANGE      = 22
+        private const val TX_SET_RANGE_20   = 20   // most likely alternative
+        private const val TX_SET_RANGE_21   = 21   // second alternative
         private const val TX_PAUSE_RESUME   = 25
+
+        private const val PROXY_TAG = "VcamBinderProxy"
     }
 
     override fun asBinder(): IBinder = binder
@@ -48,6 +55,63 @@ class VcamBinderProxy(private val binder: IBinder) : IInterface {
             reply.readInt()
         } finally {
             reply.recycle(); data.recycle()
+        }
+    }
+
+    /**
+     * Alternative start that sends (url, loop) WITHOUT the autoRotate field.
+     *
+     * Some vcplax builds define start() as start(url, loop) — two args — while
+     * others use start(url, autoRotate, loop) — three args.  When the two-arg
+     * variant is active, our three-arg start() above writes autoRotate (= 0 =
+     * false) into the position vcplax reads as 'loop', so the video plays once
+     * without looping and vcplax then stops.  This variant skips autoRotate
+     * entirely so 'loop' lands in the correct position.
+     */
+    fun startLoopOnly(url: String, loop: Boolean = true): Int {
+        val data = Parcel.obtain()
+        val reply = Parcel.obtain()
+        return try {
+            data.writeInterfaceToken(DESCRIPTOR)
+            data.writeString(url)
+            data.writeInt(if (loop) 1 else 0)
+            binder.transact(TX_START, data, reply, 0)
+            reply.readException()
+            reply.readInt()
+        } finally {
+            reply.recycle(); data.recycle()
+        }
+    }
+
+    /**
+     * Broadcast setRange across every candidate transaction code.
+     *
+     * The exact TX code for setRange was reverse-engineered and may be off.
+     * Codes 20, 21, and 22 are all tried in sequence so at least one reaches
+     * the correct handler regardless of which build of vcplax is installed.
+     * Each call is individually guarded; a failure on the wrong code is silent.
+     *
+     * IMPORTANT: call this BEFORE start() so vcplax applies the range before
+     * the first frame is decoded.  A post-start call is a belt-and-suspenders
+     * fallback for builds that accept it after start.
+     *
+     * @param startUs  start position in microseconds (0 = beginning)
+     * @param endUs    end position in microseconds (0 = full length sentinel)
+     */
+    fun setRangeBroadcast(startUs: Long, endUs: Long) {
+        for (txCode in listOf(TX_SET_RANGE_20, TX_SET_RANGE_21, TX_SET_RANGE)) {
+            val data = Parcel.obtain(); val reply = Parcel.obtain()
+            try {
+                data.writeInterfaceToken(DESCRIPTOR)
+                data.writeLong(startUs)
+                data.writeLong(endUs)
+                binder.transact(txCode, data, reply, 0)
+                reply.readException()
+                reply.readInt()
+                Log.d(PROXY_TAG, "setRangeBroadcast TX$txCode OK (start=$startUs end=$endUs)")
+            } catch (e: Exception) {
+                Log.w(PROXY_TAG, "setRangeBroadcast TX$txCode: ${e.message}")
+            } finally { reply.recycle(); data.recycle() }
         }
     }
 
