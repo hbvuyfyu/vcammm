@@ -1,6 +1,7 @@
 package com.vcam.utils
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.os.IBinder
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -144,13 +145,17 @@ object VcplaxEngine {
             return@withContext try {
                 val result = svc.start(mediaPath, autoRotate = false, loop = loop)
                 Log.d(TAG, "start() returned: $result")
-                // Clear any default range limit so the full video plays.
-                // vcplax defaults to a 20-second playback window unless
-                // setRange(0, 0) is called explicitly (0 = start, 0 = full length).
-                try { svc.setRange(0L, oL) } catch (e: Exception) {
 
+                // Clear any default range limit so the full video plays.
+                // vcplax defaults to a short playback window unless the
+                // actual video duration is passed explicitly via setRange.
+                val durationUs = getVideoDurationUs(mediaPath)
+                try {
+                    svc.setRange(0L, durationUs)
+                } catch (e: Exception) {
                     Log.w(TAG, "setRange failed: ${e.message}")
                 }
+
                 // Explicitly set loop mode via dedicated transaction — some
                 // vcplax builds ignore the loop flag in start() and require
                 // a separate setLoop() call, which causes video to stop
@@ -198,6 +203,22 @@ object VcplaxEngine {
     fun getProxy(): VcamBinderProxy? = proxy
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Returns the video's actual duration in microseconds, or 0 on failure. */
+    private fun getVideoDurationUs(mediaPath: String): Long {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(mediaPath)
+            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: 0L
+            durationMs * 1000L // convert ms → us
+        } catch (e: Exception) {
+            Log.w(TAG, "getVideoDurationUs failed: ${e.message}")
+            0L
+        } finally {
+            retriever.release()
+        }
+    }
 
     private fun getOrCreateServiceName(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
