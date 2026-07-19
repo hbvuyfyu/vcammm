@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <solid android:color="@color/video_accent"/>
-    <stroke android:width="2dp" android:color="@color/video_accent"/>
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:top="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="10dp"/>
+            <solid android:color="#60F59E0B"/>
+        </shape>
+    </item>
+    <item android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="10dp"/>
+            <gradient
+                android:type="linear"
+                android:angle="135"
+                android:startColor="#FDE68A"
+                android:endColor="#D97706"/>
+        </shape>
+    </item>
+</layer-list>

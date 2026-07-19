@@ -1,46 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="color_primary">#FFFFFF</color>
-    <color name="color_primary_dark">#F5F5F7</color>
-    <color name="color_accent">#2563EB</color>
-    <color name="color_accent_light">#DBEAFE</color>
-    <color name="color_background">#FFFFFF</color>
-    <color name="color_surface">#F8F9FB</color>
-    <color name="color_card_bg">#FFFFFF</color>
-    <color name="color_text_primary">#0A0A0A</color>
-    <color name="color_text_secondary">#6B7280</color>
-    <color name="color_start">#2563EB</color>
-    <color name="color_stop">#DC2626</color>
-    <color name="color_root_ok">#16A34A</color>
-    <color name="color_root_fail">#DC2626</color>
-    <color name="color_selected_card">#EFF6FF</color>
-    <color name="color_divider">#E5E7EB</color>
+    <!-- ── Core backgrounds ── -->
+    <color name="color_background">#08091A</color>
+    <color name="color_surface">#0D1126</color>
+    <color name="color_card_bg">#111827</color>
+    <color name="color_primary">#08091A</color>
+    <color name="color_primary_dark">#050610</color>
+
+    <!-- ── Accent (Cyan) ── -->
+    <color name="color_accent">#38BDF8</color>
+    <color name="color_accent_light">#0C2D44</color>
+    <color name="accent_50">#0C2D44</color>
+    <color name="accent_100">#0E3A55</color>
+    <color name="accent_200">#1A567A</color>
+    <color name="accent_500">#0EA5E9</color>
+    <color name="accent_600">#38BDF8</color>
+    <color name="accent_700">#7DD3FC</color>
+
+    <!-- ── Purple accent ── -->
+    <color name="color_purple">#818CF8</color>
+    <color name="color_purple_dark">#6366F1</color>
+
+    <!-- ── Video accent (Amber) ── -->
+    <color name="video_accent">#F59E0B</color>
+    <color name="video_accent_light">#2D1F03</color>
+
+    <!-- ── Text ── -->
+    <color name="color_text_primary">#F1F5F9</color>
+    <color name="color_text_secondary">#475569</color>
+
+    <!-- ── Borders ── -->
+    <color name="color_divider">#1E293B</color>
+    <color name="color_border_glow">#1A38BDF8</color>
+    <color name="color_border_video">#1AF59E0B</color>
+
+    <!-- ── Semantic ── -->
+    <color name="color_start">#10B981</color>
+    <color name="color_stop">#EF4444</color>
+    <color name="color_root_ok">#10B981</color>
+    <color name="color_root_fail">#EF4444</color>
+    <color name="color_selected_card">#0C2D44</color>
+    <color name="success">#10B981</color>
+    <color name="success_light">#052E16</color>
+    <color name="warning">#F59E0B</color>
+    <color name="warning_light">#2D1F03</color>
+    <color name="error">#EF4444</color>
+    <color name="error_light">#450A0A</color>
+
+    <!-- ── Neutrals ── -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <!-- Accent ramp -->
-    <color name="accent_50">#EFF6FF</color>
-    <color name="accent_100">#DBEAFE</color>
-    <color name="accent_200">#BFDBFE</color>
-    <color name="accent_500">#3B82F6</color>
-    <color name="accent_600">#2563EB</color>
-    <color name="accent_700">#1D4ED8</color>
-    <!-- Neutral ramp -->
-    <color name="neutral_50">#F9FAFB</color>
-    <color name="neutral_100">#F3F4F6</color>
-    <color name="neutral_200">#E5E7EB</color>
-    <color name="neutral_300">#D1D5DB</color>
-    <color name="neutral_400">#9CA3AF</color>
-    <color name="neutral_500">#6B7280</color>
-    <color name="neutral_700">#374151</color>
-    <color name="neutral_900">#111827</color>
-    <!-- Semantic -->
-    <color name="success">#16A34A</color>
-    <color name="success_light">#DCFCE7</color>
-    <color name="warning">#F59E0B</color>
-    <color name="warning_light">#FEF3C7</color>
-    <color name="error">#DC2626</color>
-    <color name="error_light">#FEE2E2</color>
-    <!-- Video accent (teal) -->
-    <color name="video_accent">#0D9488</color>
-    <color name="video_accent_light">#CCFBF1</color>
+    <color name="neutral_50">#0F172A</color>
+    <color name="neutral_100">#1E293B</color>
+    <color name="neutral_200">#1E293B</color>
+    <color name="neutral_300">#334155</color>
+    <color name="neutral_400">#475569</color>
+    <color name="neutral_500">#64748B</color>
+    <color name="neutral_700">#94A3B8</color>
+    <color name="neutral_900">#CBD5E1</color>
+
+    <!-- ── Overlay ── -->
+    <color name="overlay_dark">#CC08091A</color>
+    <color name="overlay_card">#B3111827</color>
+    <color name="glow_cyan">#4038BDF8</color>
+    <color name="glow_amber">#40F59E0B</color>
 </resources>
