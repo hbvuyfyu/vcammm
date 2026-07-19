@@ -142,17 +142,23 @@ object VcplaxEngine {
         withContext(Dispatchers.IO) {
             val svc = proxy ?: connect() ?: return@withContext false
             return@withContext try {
-                val result = svc.start(mediaPath, autoRotate = false, loop = loop)
-                Log.d(TAG, "start() returned: $result")
-                // Explicitly set loop mode via dedicated transaction — some
-                // vcplax builds ignore the loop flag in start() and require
-                // a separate setLoop() call, which causes video to stop
-                // after one playthrough instead of looping.
-                if (loop) {
-                    try { svc.setLoop(true) } catch (e: Exception) {
-                        Log.w(TAG, "setLoop failed: ${e.message}")
-                    }
-                }
+    val result = svc.start(mediaPath, autoRotate = false, loop = loop)
+    Log.d(TAG, "start() returned: $result")
+    // Clear any default range limit so the full video plays.
+    // vcplax defaults to a 20-second playback window unless
+    // setRange(0, 0) is called explicitly (0 = start, 0 = full length).
+    try { svc.setRange(0L, 0L) } catch (e: Exception) {
+        Log.w(TAG, "setRange failed: ${e.message}")
+    }
+    // Explicitly set loop mode via dedicated transaction — some
+    // vcplax builds ignore the loop flag in start() and require
+    // a separate setLoop() call, which causes video to stop
+    // after one playthrough instead of looping.
+    if (loop) {
+        try { svc.setLoop(true) } catch (e: Exception) {
+            Log.w(TAG, "setLoop failed: ${e.message}")
+        }
+    }
                 // Wait for the injection to become active
                 var retries = 0
                 while (retries < 6 && !svc.isRunning) {
