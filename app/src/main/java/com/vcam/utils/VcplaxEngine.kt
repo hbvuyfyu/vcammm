@@ -33,9 +33,13 @@ object VcplaxEngine {
     private const val TAG = "VcplaxEngine"
 
     // Destination paths in root-writable area
-    private const val VC_LIB_PATH     = "/data/libvc.so"
-    private const val SHADOW_LIB_PATH = "/data/libvc++.so"
-    private const val VCPLAX_PATH     = "/data/vcplax"
+    private const val VC_LIB_PATH          = "/data/libvc.so"
+    private const val SHADOW_LIB_PATH      = "/data/libvc++.so"
+    // libvc.so declares a hard dependency on "libshadowhook.so" (SONAME).
+    // The dynamic linker matches by filename, so we MUST also deploy the library
+    // under its real SONAME alongside the aliased copy.
+    private const val SHADOW_SONAME_PATH   = "/data/libshadowhook.so"
+    private const val VCPLAX_PATH          = "/data/vcplax"
 
     // Prefs
     private const val PREFS_NAME = "vcam_engine_v2"
@@ -79,6 +83,13 @@ object VcplaxEngine {
 
             // 4. Copy to /data/ with root
             RootManager.runCommand("cp '$libDir/libvc.so' $VC_LIB_PATH && chmod 644 $VC_LIB_PATH")
+            // Deploy libshadowhook.so TWICE:
+            //   • Under its real SONAME  (/data/libshadowhook.so) — required so that the
+            //     dynamic linker can resolve libvc.so's DT_NEEDED "libshadowhook.so" entry.
+            //     Without this file, dlopen("libvc.so") fails and the camera hook is never
+            //     installed, even though vcplax itself starts normally.
+            //   • Under the legacy alias (/data/libvc++.so) — kept for compatibility.
+            RootManager.runCommand("cp '$libDir/libshadowhook.so' $SHADOW_SONAME_PATH && chmod 644 $SHADOW_SONAME_PATH")
             RootManager.runCommand("cp '$libDir/libshadowhook.so' $SHADOW_LIB_PATH && chmod 644 $SHADOW_LIB_PATH")
             RootManager.runCommand("cp '$libDir/vcplax.so' $VCPLAX_PATH && chmod 700 $VCPLAX_PATH")
 
@@ -95,7 +106,12 @@ object VcplaxEngine {
 
             // 6. Temporarily disable SELinux, start vcplax, re-enable
             RootManager.runCommand("setenforce 0 2>/dev/null || true")
-            RootManager.runCommand("$VCPLAX_PATH $svcName &")
+            // LD_LIBRARY_PATH=/data is mandatory: when vcplax calls dlopen("libvc.so"),
+            // the linker must be able to resolve libvc.so's dependency on "libshadowhook.so".
+            // Both files now exist in /data/ under their correct names, so pointing the
+            // linker there lets libvc.so load fully and install its camera HAL hooks.
+            // Without this env var the linker only searches system paths and misses /data/.
+            RootManager.runCommand("LD_LIBRARY_PATH=/data $VCPLAX_PATH $svcName &")
 
             Log.d(TAG, "vcplax started, binder name: $svcName")
             initialized = true
@@ -161,22 +177,33 @@ object VcplaxEngine {
                 Log.d(TAG, "pre-start setRangeBroadcast sent")
 
                 // ── Step 3: start injection ───────────────────────────────────────────
-                // Two variants are tried:
-                //   A) startLoopOnly(url, loop)   — for builds whose start() signature
-                //      is (url, loop); sending the extra autoRotate int in the standard
-                //      start() puts 0 in the loop position → video plays once, no loop.
-                //   B) start(url, autoRotate, loop) — the original three-arg form kept
-                //      as a fallback for builds that do accept autoRotate.
+                // vcplax's start() signature is uncertain from reverse-engineering.
+                // Two forms exist in the wild:
+                //   A) start(url, loop)             — two-arg (no autoRotate)
+                //   B) start(url, autoRotate, loop) — three-arg
+                //
+                // The critical problem with calling BOTH variants back-to-back is that
+                // the second start() resets vcplax's internal state and discards any
+                // range or loop configuration applied before the first start().  This
+                // produced the observed < 1-second loop in all earlier attempts.
+                //
+                // Strategy: try startLoopOnly (two-arg) first.  If it succeeds
+                // (no exception) we stop there.  The three-arg start() is only used
+                // as a fallback when startLoopOnly throws, ensuring vcplax is started
+                // EXACTLY ONCE per injection attempt.
                 val resultA = try {
                     val r = svc.startLoopOnly(mediaPath, loop)
                     Log.d(TAG, "startLoopOnly() returned: $r")
                     r
                 } catch (e: Exception) {
-                    Log.w(TAG, "startLoopOnly failed: ${e.message}"); -1
+                    Log.w(TAG, "startLoopOnly failed: ${e.message} — falling back to three-arg start")
+                    // Only try the three-arg form when startLoopOnly raised an exception
+                    val r = svc.start(mediaPath, autoRotate = false, loop = loop)
+                    Log.d(TAG, "start() fallback returned: $r")
+                    r
                 }
-
-                val result = svc.start(mediaPath, autoRotate = false, loop = loop)
-                Log.d(TAG, "start() returned: $result (startLoopOnly returned: $resultA)")
+                val result = resultA
+                Log.d(TAG, "Injection start result: $result")
 
                 // ── Step 4: broadcast setRange AFTER start() too ──────────────────────
                 // Belt-and-suspenders: some builds ignore pre-start setRange and only

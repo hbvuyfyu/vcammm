@@ -275,8 +275,14 @@ class CameraInjector(
             val frameIntervalMs = 33L
 
             while (running) {
+                // OPTION_PREVIOUS_SYNC: always returns the sync frame at or BEFORE
+                // posMs, giving monotonically advancing playback.
+                // OPTION_CLOSEST_SYNC (the old value) could jump to a *future*
+                // keyframe for positions between two keyframes, making the video
+                // appear to skip forward and then loop back — producing the
+                // "plays ~1 second then restarts" symptom in the legacy path.
                 val frameBitmap = retriever.getFrameAtTime(
-                    posMs * 1000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+                    posMs * 1000L, MediaMetadataRetriever.OPTION_PREVIOUS_SYNC
                 )
                 if (frameBitmap != null) {
                     val transformed = applyTransforms(frameBitmap)
