@@ -1,6 +1,7 @@
 package com.vcam.utils
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.os.IBinder
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -145,10 +146,23 @@ object VcplaxEngine {
                 val result = svc.start(mediaPath, autoRotate = false, loop = loop)
                 Log.d(TAG, "start() returned: $result")
                 // Clear any default range limit so the full video plays.
-                // vcplax defaults to a 20-second playback window unless
-                // setRange(0, 0) is called explicitly (0 = start, 0 = full length).
-                try { svc.setRange(0L, 0L) } catch (e: Exception) {
-                    Log.w(TAG, "setRange failed: ${e.message}")
+                // We pass the real duration in microseconds so vcplax plays
+                // the entire file before looping, instead of stopping early
+                // at its internal 20-second default window.
+                if (loop) {
+                    try {
+                        val durationUs = MediaMetadataRetriever().run {
+                            setDataSource(mediaPath)
+                            val ms = extractMetadata(
+                                MediaMetadataRetriever.METADATA_KEY_DURATION
+                            )?.toLongOrNull() ?: 0L
+                            release()
+                            ms * 1000L   // milliseconds → microseconds
+                        }
+                        if (durationUs > 0) svc.setRange(0L, durationUs)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "setRange failed: ${e.message}")
+                    }
                 }
                 // Explicitly set loop mode via dedicated transaction — some
                 // vcplax builds ignore the loop flag in start() and require
