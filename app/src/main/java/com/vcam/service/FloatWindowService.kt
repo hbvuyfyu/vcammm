@@ -42,7 +42,7 @@ class FloatWindowService : Service() {
         private const val CHANNEL_ID    = "vcam_float_channel"
         private const val NOTIF_ID      = 1002
 
-        private const val CLICK_THRESHOLD_MS = 600L
+        private const val CLICK_THRESHOLD_MS = 250L
         private const val CLICK_SLOP_PX  = 12f
     }
 
