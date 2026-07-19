@@ -108,12 +108,26 @@ class CameraInjector(
                     if (rotation != 0) VcplaxEngine.setRotation(rotation)
                     if (mirror)        VcplaxEngine.setMirror(true)
 
-                    // Stay alive and propagate rotation/mirror changes
+                    // Stay alive and propagate rotation/mirror changes.
+                    // failCount guards against false positives: vcplax briefly
+                    // reports a non-injecting status during loop transitions,
+                    // which would otherwise trigger a premature restart and make
+                    // the video appear to loop after less than one second.
                     var watchdogDelay = 500L
+                    var failCount = 0
                     while (running) {
                         delay(watchdogDelay)
                         // Check if vcplax is still running
                         if (!VcplaxEngine.isRunning) {
+                            failCount++
+                            // Require 3 consecutive failures (~1.5 s) before deciding
+                            // vcplax truly stopped, to avoid restarting during the
+                            // brief status transition between video loop iterations.
+                            if (failCount < 3) {
+                                Log.d(TAG, "vcplax status check: not-running (failCount=$failCount), waiting…")
+                                continue
+                            }
+                            failCount = 0
                             Log.w(TAG, "vcplax stopped unexpectedly — restarting injection")
                             val restarted = VcplaxEngine.startInjection(mediaPath, loop = isVideo)
                             if (!restarted) {
@@ -126,6 +140,7 @@ class CameraInjector(
                                 watchdogDelay = 500L
                             }
                         } else {
+                            failCount = 0
                             watchdogDelay = 500L
                         }
                     }

@@ -149,11 +149,26 @@ object VcplaxEngine {
                 // Clear any default range limit so the full video plays.
                 // vcplax defaults to a short playback window unless the
                 // actual video duration is passed explicitly via setRange.
+                // Strategy: first try setRange(0L, 0L) where endUs=0 means
+                // "full length" per the IMyBinderService contract, then also
+                // send the explicit duration in microseconds as a fallback for
+                // builds that require a non-zero value.
                 val durationUs = getVideoDurationUs(mediaPath)
                 try {
-                    svc.setRange(0L, durationUs)
+                    // endUs = 0L → "play to end" (full-length sentinel)
+                    svc.setRange(0L, 0L)
+                    Log.d(TAG, "setRange(full) sent")
                 } catch (e: Exception) {
-                    Log.w(TAG, "setRange failed: ${e.message}")
+                    Log.w(TAG, "setRange(full) failed: ${e.message}")
+                }
+                if (durationUs > 0L) {
+                    try {
+                        // Also send explicit duration for builds that ignore the 0 sentinel
+                        svc.setRange(0L, durationUs)
+                        Log.d(TAG, "setRange(durationUs=$durationUs) sent")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "setRange(duration) failed: ${e.message}")
+                    }
                 }
 
                 // Explicitly set loop mode via dedicated transaction — some
