@@ -173,7 +173,21 @@ class CameraInjector(
      * playback position and produce the "loops every second" symptom.
      */
     private suspend fun monitorVcplaxTransforms() = withContext(Dispatchers.IO) {
-        resetLastRendered()
+        // For video mode: pre-sync tracking vars to current values so that
+        // setRotation/setMirror are NOT called at startup with default values.
+        // A Binder call to setRotation immediately after start() destabilises
+        // vcplax and disconnects the injection. Only call when user actively changes
+        // rotation/mirror via the float window controls.
+        if (isVideo) {
+            lastRenderedRotation = rotation
+            lastRenderedMirror   = mirror
+            lastRenderedZoom     = zoomFactor
+            lastRenderedScale    = frameFillScale
+            lastRenderedPanX     = panX
+            lastRenderedPanY     = panY
+        } else {
+            resetLastRendered()
+        }
 
         // Cache the raw bitmap for image mode so re-renders don't reload from disk
         val cachedBitmap: Bitmap? = if (!isVideo) loadBitmapForInjection(mediaPath) else null
@@ -207,10 +221,13 @@ class CameraInjector(
                     } else {
                         // For video: apply rotation/mirror via Binder only when changed.
                         // Zoom/pan/scale are not applied in video mode (vcplax handles the stream).
-                        if (firstRender || r != lastRenderedRotation) {
+                        // Only send Binder calls when values actually changed.
+                        // Never call on startup — setRotation(0) immediately after
+                        // start() disconnects the vcplax injection.
+                        if (r != lastRenderedRotation) {
                             VcplaxEngine.setRotation(r)
                         }
-                        if (firstRender || m != lastRenderedMirror) {
+                        if (m != lastRenderedMirror) {
                             VcplaxEngine.setMirror(m)
                         }
                     }
