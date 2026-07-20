@@ -40,12 +40,17 @@ class VCamService : Service() {
                 FloatWindowService.ACTION_ROTATE -> {
                     val r = intent.getIntExtra("rotation", 0)
                     injector?.rotation = r
-                    VcplaxEngine.setRotation(r)
+                    // Do NOT call VcplaxEngine.setRotation here — calling the Binder
+                    // directly from the broadcast receiver (main/IO thread race) can
+                    // destabilise vcplax and disconnect the injection mid-video.
+                    // The monitorVcplaxTransforms() loop in CameraInjector picks up
+                    // the @Volatile rotation change and applies it safely from its
+                    // own IO coroutine within ~25 ms.
                 }
                 FloatWindowService.ACTION_MIRROR -> {
                     val m = intent.getBooleanExtra("mirror", false)
                     injector?.mirror = m
-                    VcplaxEngine.setMirror(m)
+                    // Same reasoning as ACTION_ROTATE — let the monitor loop apply it.
                 }
                 FloatWindowService.ACTION_SWITCH_SLOT -> {
                     val slot = intent.getIntExtra(FloatWindowService.EXTRA_SLOT, 1)
@@ -148,21 +153,31 @@ class VCamService : Service() {
         val isVideo = MediaSlotManager.isSlotVideo(this, slot)
         serviceScope.launch {
             try {
-                // Try vcplax hot-swap first (no interruption)
+                val prevRot  = injector?.rotation       ?: 0
+                val prevMirr = injector?.mirror         ?: false
+
                 val proxy = VcplaxEngine.getProxy()
                 if (proxy != null && VcplaxEngine.isRunning) {
+                    // vcplax is alive — stop only the monitor loop, keep vcplax running.
+                    // Then switch the source via Binder so there is no interruption.
+                    injector?.stopMonitorOnly()
                     proxy.switchSource(path, if (isVideo) 2 else 1)
                 } else {
-                    // Restart injection with new media
+                    // vcplax not running — full restart
                     injector?.stop()
-                    injector = CameraInjector(
-                        context       = this@VCamService,
-                        mediaPath     = path,
-                        isVideo       = isVideo,
-                        targetPackage = null
-                    )
-                    injector?.start()
                 }
+
+                // Create a new monitor for the new slot (preserves rotation/mirror)
+                injector = CameraInjector(
+                    context       = this@VCamService,
+                    mediaPath     = path,
+                    isVideo       = isVideo,
+                    targetPackage = null
+                ).also {
+                    it.rotation = prevRot
+                    it.mirror   = prevMirr
+                }
+                injector?.start()
                 updateNotification("VCam — Slot $slot Active",
                     if (isVideo) "🎬 فيديو ${slot - 4}" else "📷 صورة $slot")
             } catch (_: Exception) {}
