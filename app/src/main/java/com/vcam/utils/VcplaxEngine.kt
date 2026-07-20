@@ -166,7 +166,7 @@ object VcplaxEngine {
         withContext(Dispatchers.IO) {
             val svc = proxy ?: connect() ?: return@withContext false
             return@withContext try {
-                val result = svc.start(mediaPath, autoRotate = false, loop = loop)
+               val result = svc.startLoopOnly(mediaPath, loop = loop)
                 Log.d(TAG, "start() returned: $result")
                 // Wait for the injection to become active
                 var retries = 0
