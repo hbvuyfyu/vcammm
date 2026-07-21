@@ -1,7 +1,6 @@
 package com.vcam.utils
 
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.os.IBinder
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -33,13 +32,9 @@ object VcplaxEngine {
     private const val TAG = "VcplaxEngine"
 
     // Destination paths in root-writable area
-    private const val VC_LIB_PATH          = "/data/libvc.so"
-    private const val SHADOW_LIB_PATH      = "/data/libvc++.so"
-    // libvc.so declares a hard dependency on "libshadowhook.so" (SONAME).
-    // The dynamic linker matches by filename, so we MUST also deploy the library
-    // under its real SONAME alongside the aliased copy.
-    private const val SHADOW_SONAME_PATH   = "/data/libshadowhook.so"
-    private const val VCPLAX_PATH          = "/data/vcplax"
+    private const val VC_LIB_PATH     = "/data/libvc.so"
+    private const val SHADOW_LIB_PATH = "/data/libvc++.so"
+    private const val VCPLAX_PATH     = "/data/vcplax"
 
     // Prefs
     private const val PREFS_NAME = "vcam_engine_v2"
@@ -83,13 +78,6 @@ object VcplaxEngine {
 
             // 4. Copy to /data/ with root
             RootManager.runCommand("cp '$libDir/libvc.so' $VC_LIB_PATH && chmod 644 $VC_LIB_PATH")
-            // Deploy libshadowhook.so TWICE:
-            //   • Under its real SONAME  (/data/libshadowhook.so) — required so that the
-            //     dynamic linker can resolve libvc.so's DT_NEEDED "libshadowhook.so" entry.
-            //     Without this file, dlopen("libvc.so") fails and the camera hook is never
-            //     installed, even though vcplax itself starts normally.
-            //   • Under the legacy alias (/data/libvc++.so) — kept for compatibility.
-            RootManager.runCommand("cp '$libDir/libshadowhook.so' $SHADOW_SONAME_PATH && chmod 644 $SHADOW_SONAME_PATH")
             RootManager.runCommand("cp '$libDir/libshadowhook.so' $SHADOW_LIB_PATH && chmod 644 $SHADOW_LIB_PATH")
             RootManager.runCommand("cp '$libDir/vcplax.so' $VCPLAX_PATH && chmod 700 $VCPLAX_PATH")
 
@@ -106,12 +94,7 @@ object VcplaxEngine {
 
             // 6. Temporarily disable SELinux, start vcplax, re-enable
             RootManager.runCommand("setenforce 0 2>/dev/null || true")
-            // LD_LIBRARY_PATH=/data is mandatory: when vcplax calls dlopen("libvc.so"),
-            // the linker must be able to resolve libvc.so's dependency on "libshadowhook.so".
-            // Both files now exist in /data/ under their correct names, so pointing the
-            // linker there lets libvc.so load fully and install its camera HAL hooks.
-            // Without this env var the linker only searches system paths and misses /data/.
-            RootManager.runCommand("LD_LIBRARY_PATH=/data $VCPLAX_PATH $svcName &")
+            RootManager.runCommand("$VCPLAX_PATH $svcName &")
 
             Log.d(TAG, "vcplax started, binder name: $svcName")
             initialized = true
@@ -152,13 +135,6 @@ object VcplaxEngine {
 
     /**
      * Start camera injection with the given media file.
-     *
-     * Kept deliberately simple — a single start() call is all vcplax needs.
-     * Previous attempts that added setRange / startLoopOnly / double-start
-     * all caused vcplax to reset its internal playback position on the
-     * second command, producing the "plays ~1 second then loops" symptom.
-     * The reference implementation confirms: one start() → wait → done.
-     *
      * @param mediaPath  absolute path to the image or video file
      * @param loop       loop video indefinitely (ignored for images)
      */
@@ -166,8 +142,23 @@ object VcplaxEngine {
         withContext(Dispatchers.IO) {
             val svc = proxy ?: connect() ?: return@withContext false
             return@withContext try {
-               val result = svc.startLoopOnly(mediaPath, loop = loop)
+                val result = svc.start(mediaPath, autoRotate = false, loop = loop)
                 Log.d(TAG, "start() returned: $result")
+                // Clear any default range limit so the full video plays.
+                // vcplax defaults to a 20-second playback window unless
+                // setRange(0, 0) is called explicitly (0 = start, 0 = full length).
+                try { svc.setRange(0L, 0L) } catch (e: Exception) {
+                    Log.w(TAG, "setRange failed: ${e.message}")
+                }
+                // Explicitly set loop mode via dedicated transaction — some
+                // vcplax builds ignore the loop flag in start() and require
+                // a separate setLoop() call, which causes video to stop
+                // after one playthrough instead of looping.
+                if (loop) {
+                    try { svc.setLoop(true) } catch (e: Exception) {
+                        Log.w(TAG, "setLoop failed: ${e.message}")
+                    }
+                }
                 // Wait for the injection to become active
                 var retries = 0
                 while (retries < 6 && !svc.isRunning) {
@@ -193,21 +184,12 @@ object VcplaxEngine {
         initialized = false
     }
 
-    // Lock to prevent concurrent Binder calls to setRotation/setMirror from
-    // racing with each other (the monitor loop and the slot-switch path both
-    // call these from different coroutines).
-    private val rotationLock = Any()
-
     fun setRotation(degrees: Int) {
-        synchronized(rotationLock) {
-            try { proxy?.setRotation(degrees) } catch (_: Exception) {}
-        }
+        try { proxy?.setRotation(degrees) } catch (_: Exception) {}
     }
 
     fun setMirror(enabled: Boolean) {
-        synchronized(rotationLock) {
-            try { proxy?.setMirror(enabled) } catch (_: Exception) {}
-        }
+        try { proxy?.setMirror(enabled) } catch (_: Exception) {}
     }
 
     val isRunning: Boolean get() = proxy?.isRunning == true
@@ -215,25 +197,6 @@ object VcplaxEngine {
     fun getProxy(): VcamBinderProxy? = proxy
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-
-    /**
-     * Returns the video's actual duration in microseconds, or 0 on failure.
-     * Kept for diagnostic logging — not used in the injection sequence.
-     */
-    fun getVideoDurationUs(mediaPath: String): Long {
-        val retriever = MediaMetadataRetriever()
-        return try {
-            retriever.setDataSource(mediaPath)
-            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                ?.toLongOrNull() ?: 0L
-            durationMs * 1000L // convert ms → us
-        } catch (e: Exception) {
-            Log.w(TAG, "getVideoDurationUs failed: ${e.message}")
-            0L
-        } finally {
-            retriever.release()
-        }
-    }
 
     private fun getOrCreateServiceName(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
