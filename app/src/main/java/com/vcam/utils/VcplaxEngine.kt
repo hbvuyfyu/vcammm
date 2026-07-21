@@ -142,7 +142,7 @@ object VcplaxEngine {
         withContext(Dispatchers.IO) {
             val svc = proxy ?: connect() ?: return@withContext false
             return@withContext try {
-                val result = svc.start(mediaPath, autoRotate = false, loop = loop)
+                val result = svc.startLoopOnly(mediaPath, loop = loop)
                 Log.d(TAG, "start() returned: $result")
                 // Clear any default range limit so the full video plays.
                 // vcplax defaults to a 20-second playback window unless
