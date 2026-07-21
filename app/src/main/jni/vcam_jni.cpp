@@ -76,6 +76,10 @@ static void v4l2_frame_pump(int fd, int w, int h) {
         ssize_t ret = write(fd, tmp_buf, frame_size);
         if (ret < 0 && errno != EAGAIN) {
             LOGE("V4L2 write error: %s", strerror(errno));
+            // Clear g_running before exiting so nativeStartFrameLoop() can
+            // restart the pump on a subsequent call instead of returning
+            // early thinking the pump is still alive.
+            g_running.store(false);
             break;
         }
         usleep(33333); /* ~30fps */

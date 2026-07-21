@@ -148,16 +148,27 @@ object VcplaxEngine {
                 // when the correct code is different, leaving vcplax with its default range limit.
                 svc.setRangeBroadcast(0L, 0L)
 
-                val result = svc.start(mediaPath, autoRotate = false, loop = true)
-                Log.d(TAG, "start() returned: $result")
+                // IMPORTANT: use startLoopOnly() instead of start().
+                //
+                // start() sends three Parcel fields: (url, autoRotate=0, loop=1).
+                // vcplax builds that use the 2-arg format start(url, loop) read
+                // autoRotate=0 as loop=false, so the video plays exactly once and
+                // vcplax disconnects when it ends — producing the "injection stops
+                // randomly" symptom whose timing matches the video length.
+                //
+                // startLoopOnly() sends only (url, loop=1), which lands correctly
+                // regardless of whether vcplax expects 2 or 3 args.
+                // The setLoop(true) call below is the belt-and-suspenders for 3-arg
+                // builds where startLoopOnly leaves the loop field unspecified.
+                val result = svc.startLoopOnly(mediaPath, loop = true)
+                Log.d(TAG, "startLoopOnly() returned: $result")
 
                 // Belt-and-suspenders: also broadcast after start for builds that accept it post-start.
                 svc.setRangeBroadcast(0L, 0L)
 
-                // Explicitly set loop mode via dedicated transaction — some
-                // vcplax builds ignore the loop flag in start() and require
-                // a separate setLoop() call, which causes video to stop
-                // after one playthrough instead of looping.
+                // Explicitly set loop mode via dedicated transaction — ensures looping
+                // is active on 3-arg vcplax builds where startLoopOnly() may leave
+                // the loop field undefined.
                 if (loop) {
                     try { svc.setLoop(true) } catch (e: Exception) {
                         Log.w(TAG, "setLoop failed: ${e.message}")
