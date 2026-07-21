@@ -142,14 +142,18 @@ object VcplaxEngine {
         withContext(Dispatchers.IO) {
             val svc = proxy ?: connect() ?: return@withContext false
             return@withContext try {
+                // Set full range BEFORE start() so vcplax applies it before the first frame.
+                // Uses setRangeBroadcast which tries all candidate TX codes (20, 21, 22)
+                // because the exact code is uncertain; svc.setRange(TX=22 only) fails silently
+                // when the correct code is different, leaving vcplax with its default range limit.
+                svc.setRangeBroadcast(0L, 0L)
+
                 val result = svc.start(mediaPath, autoRotate = false, loop = true)
                 Log.d(TAG, "start() returned: $result")
-                // Clear any default range limit so the full video plays.
-                // vcplax defaults to a 20-second playback window unless
-                // setRange(0, 0) is called explicitly (0 = start, 0 = full length).
-                try { svc.setRange(0L, 0L) } catch (e: Exception) {
-                    Log.w(TAG, "setRange failed: ${e.message}")
-                }
+
+                // Belt-and-suspenders: also broadcast after start for builds that accept it post-start.
+                svc.setRangeBroadcast(0L, 0L)
+
                 // Explicitly set loop mode via dedicated transaction — some
                 // vcplax builds ignore the loop flag in start() and require
                 // a separate setLoop() call, which causes video to stop
